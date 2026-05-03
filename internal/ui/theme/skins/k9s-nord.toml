@@ -1,0 +1,21 @@
+# c9s skin imported from k9s/nord.yaml
+[colors]
+  fg = "#DADEE8"
+  bg = "default"
+  border = "#383D4A"
+  accent = "#B48EAD"
+  dim = "#81A1C1"
+  success = "#88C0D0"
+  warning = "#B48EAD"
+  error = "#BF616A"
+  selection_fg = "default"
+  selection_bg = "#B48EAD"
+  header_fg = "#DADEE8"
+  header_bg = "#383D4A"
+
+[state_colors]
+  created = "#D08770"
+  exited = "#DADEE8"
+  paused = "#B48EAD"
+  running = "#88C0D0"
+  stopping = "#BF616A"

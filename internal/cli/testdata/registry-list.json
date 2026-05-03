@@ -1,0 +1,12 @@
+[
+  {
+    "host": "ghcr.io",
+    "user": "torosent",
+    "default": true
+  },
+  {
+    "host": "docker.io",
+    "user": "alice",
+    "default": false
+  }
+]

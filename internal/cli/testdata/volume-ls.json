@@ -1,0 +1,16 @@
+[
+  {
+    "name": "api-data",
+    "driver": "local",
+    "mountpoint": "/var/lib/container/volumes/api-data/_data",
+    "size": 104857600,
+    "usedBy": ["api-server", "worker-1"]
+  },
+  {
+    "name": "cache",
+    "driver": "local",
+    "mountpoint": "/var/lib/container/volumes/cache/_data",
+    "size": 0,
+    "usedBy": []
+  }
+]

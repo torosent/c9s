@@ -1,0 +1,21 @@
+# c9s skin imported from k9s/one-light.yaml
+[colors]
+  fg = "#383a42"
+  bg = "#fafafa"
+  border = "#4078f2"
+  accent = "#4078f2"
+  dim = "#a0a1a7"
+  success = "#0184bc"
+  warning = "#4078f2"
+  error = "#e45649"
+  selection_fg = "#fafafa"
+  selection_bg = "#4078f2"
+  header_fg = "#4078f2"
+  header_bg = "#fafafa"
+
+[state_colors]
+  created = "#c18401"
+  exited = "#ffffff"
+  paused = "#4078f2"
+  running = "#0184bc"
+  stopping = "#e45649"

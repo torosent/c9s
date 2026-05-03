@@ -1,0 +1,5 @@
+[
+  {"key": "registry.default", "value": "ghcr.io",  "readOnly": false},
+  {"key": "build.cache",      "value": "/var/cache", "readOnly": false},
+  {"key": "version",          "value": "0.4.0",      "readOnly": true}
+]

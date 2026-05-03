@@ -1,0 +1,213 @@
+package jobs
+
+import (
+	"fmt"
+	"time"
+
+	"github.com/charmbracelet/bubbles/table"
+	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
+	"github.com/torosent/c9s/internal/clock"
+	"github.com/torosent/c9s/internal/jobs"
+	"github.com/torosent/c9s/internal/ui/keymap"
+)
+
+// Model is the jobs screen showing background streaming jobs.
+type Model struct {
+	manager *jobs.Manager
+	clock   clock.Clock
+	table   table.Model
+	width   int
+	height  int
+}
+
+// New creates a new jobs screen.
+func New(mgr *jobs.Manager, clk clock.Clock) *Model {
+	columns := []table.Column{
+		{Title: "ID", Width: 6},
+		{Title: "KIND", Width: 8},
+		{Title: "TARGET", Width: 30},
+		{Title: "STATE", Width: 12},
+		{Title: "ELAPSED", Width: 10},
+		{Title: "LINES", Width: 8},
+	}
+
+	t := table.New(
+		table.WithColumns(columns),
+		table.WithFocused(true),
+		table.WithHeight(20),
+	)
+
+	s := table.DefaultStyles()
+	s.Header = s.Header.
+		BorderStyle(lipgloss.NormalBorder()).
+		BorderForeground(lipgloss.Color("240")).
+		BorderBottom(true).
+		Bold(false)
+	s.Selected = s.Selected.
+		Foreground(lipgloss.Color("229")).
+		Background(lipgloss.Color("57")).
+		Bold(false)
+	t.SetStyles(s)
+
+	return &Model{
+		manager: mgr,
+		clock:   clk,
+		table:   t,
+	}
+}
+
+// Init implements Screen.
+func (m *Model) Init() tea.Cmd {
+	return tea.Batch(
+		m.refreshJobs(),
+		m.tickRefresh(),
+	)
+}
+
+type refreshJobsMsg struct{}
+
+func (m *Model) refreshJobs() tea.Cmd {
+	return func() tea.Msg {
+		return refreshJobsMsg{}
+	}
+}
+
+func (m *Model) tickRefresh() tea.Cmd {
+	return tea.Tick(1*time.Second, func(t time.Time) tea.Msg {
+		return refreshJobsMsg{}
+	})
+}
+
+// Update implements Screen.
+func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	var cmds []tea.Cmd
+
+	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		switch msg.String() {
+		case "enter":
+			return m, m.reattachJob()
+		case "ctrl+c":
+			return m, m.cancelJob()
+		case "D":
+			return m, m.clearDone()
+		case "q":
+			// Let app handle quit
+			return m, nil
+		}
+
+	case refreshJobsMsg:
+		m.updateTable()
+		cmds = append(cmds, m.tickRefresh())
+
+	case tea.WindowSizeMsg:
+		m.width = msg.Width
+		m.height = msg.Height
+		m.table.SetWidth(msg.Width)
+		m.table.SetHeight(msg.Height - 5)
+	}
+
+	var cmd tea.Cmd
+	m.table, cmd = m.table.Update(msg)
+	cmds = append(cmds, cmd)
+
+	return m, tea.Batch(cmds...)
+}
+
+func (m *Model) updateTable() {
+	jobsList := m.manager.List()
+
+	rows := []table.Row{}
+	for _, job := range jobsList {
+		elapsed := job.Elapsed(m.clock).Round(time.Second).String()
+		rows = append(rows, table.Row{
+			job.ID,
+			string(job.Kind),
+			job.Target,
+			string(job.State),
+			elapsed,
+			fmt.Sprintf("%d", len(job.Lines)),
+		})
+	}
+
+	m.table.SetRows(rows)
+}
+
+func (m *Model) reattachJob() tea.Cmd {
+	row := m.table.SelectedRow()
+	if len(row) == 0 {
+		return nil
+	}
+	jobID := row[0]
+
+	job, ok := m.manager.Get(jobID)
+	if !ok {
+		return nil
+	}
+
+	// Emit OpenModalMsg to re-attach to this job
+	// The modal will be created by app.go based on job.Kind
+	return func() tea.Msg {
+		return OpenModalMsg{JobID: jobID, Kind: job.Kind}
+	}
+}
+
+func (m *Model) cancelJob() tea.Cmd {
+	row := m.table.SelectedRow()
+	if len(row) == 0 {
+		return nil
+	}
+	jobID := row[0]
+
+	_ = m.manager.Cancel(jobID)
+	return m.refreshJobs()
+}
+
+func (m *Model) clearDone() tea.Cmd {
+	// Remove done/failed/cancelled jobs from manager
+	// For now, just refresh (manager doesn't have ClearDone yet)
+	// TODO: implement Manager.ClearDone() if needed
+	return m.refreshJobs()
+}
+
+// View implements Screen.
+func (m *Model) View() string {
+	return m.table.View()
+}
+
+// Title implements Screen.
+func (m *Model) Title() string {
+	return "Jobs"
+}
+
+// Hotkeys implements Screen.
+func (m *Model) Hotkeys() []keymap.Binding {
+	return []keymap.Binding{
+		{Keys: []string{"enter"}, Help: "re-attach"},
+		{Keys: []string{"ctrl+c"}, Help: "cancel"},
+		{Keys: []string{"D"}, Help: "clear done"},
+		{Keys: []string{"q"}, Help: "quit"},
+	}
+}
+
+// Summary implements Screen.
+func (m *Model) Summary() string {
+	jobsList := m.manager.List()
+	running := 0
+	done := 0
+	for _, job := range jobsList {
+		if job.State == jobs.StateRunning {
+			running++
+		} else {
+			done++
+		}
+	}
+	return fmt.Sprintf("%d jobs · %d running, %d done", len(jobsList), running, done)
+}
+
+// OpenModalMsg signals that a modal should be opened for a job.
+type OpenModalMsg struct {
+	JobID string
+	Kind  jobs.Kind
+}

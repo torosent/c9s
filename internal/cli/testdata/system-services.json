@@ -1,0 +1,5 @@
+[
+  {"name": "container-runtime", "state": "running", "pid": 1234, "uptimeSec": 3600},
+  {"name": "container-network", "state": "running", "pid": 1235, "uptimeSec": 3600},
+  {"name": "container-builder", "state": "stopped", "pid": 0, "uptimeSec": 0}
+]

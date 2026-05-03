@@ -1,0 +1,5 @@
+{
+  "images":     {"count": 12, "active": 5, "size": 1073741824, "reclaimable": 524288000},
+  "containers": {"count": 4,  "active": 2, "size": 314572800,  "reclaimable": 0},
+  "volumes":    {"count": 3,  "active": 1, "size": 209715200,  "reclaimable": 104857600}
+}

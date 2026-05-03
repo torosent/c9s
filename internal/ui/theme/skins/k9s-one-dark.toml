@@ -1,0 +1,21 @@
+# c9s skin imported from k9s/one-dark.yaml
+[colors]
+  fg = "#abb2bf"
+  bg = "#282c34"
+  border = "#98c379"
+  accent = "#98c379"
+  dim = "#abb2bf"
+  success = "#61afef"
+  warning = "#98c379"
+  error = "#e06370"
+  selection_fg = "#282c34"
+  selection_bg = "#98c379"
+  header_fg = "#61afef"
+  header_bg = "#282c34"
+
+[state_colors]
+  created = "#e5c07b"
+  exited = "#080808"
+  paused = "#98c379"
+  running = "#61afef"
+  stopping = "#e06370"

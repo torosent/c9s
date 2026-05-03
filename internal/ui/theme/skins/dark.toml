@@ -1,0 +1,21 @@
+# c9s dark theme (default)
+[colors]
+fg = "#c9d1d9"
+bg = "#0d1117"
+border = "#30363d"
+accent = "#58a6ff"
+dim = "#6e7681"
+success = "#3fb950"
+warning = "#d29922"
+error = "#f85149"
+selection_fg = "#ffffff"
+selection_bg = "#1f6feb"
+header_fg = "#f0f6fc"
+header_bg = "#161b22"
+
+[state_colors]
+running = "#3fb950"
+exited = "#6e7681"
+paused = "#d29922"
+stopping = "#f85149"
+created = "#58a6ff"

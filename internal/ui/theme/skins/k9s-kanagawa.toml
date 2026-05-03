@@ -1,0 +1,21 @@
+# c9s skin imported from k9s/kanagawa.yaml
+[colors]
+  fg = "#dcd7ba"
+  bg = "#1f1f28"
+  border = "#76946a"
+  accent = "#76946a"
+  dim = "#727169"
+  success = "#7e9cd8"
+  warning = "#76946a"
+  error = "#c34043"
+  selection_fg = "#1f1f28"
+  selection_bg = "#76946a"
+  header_fg = "#7e9cd8"
+  header_bg = "#1f1f28"
+
+[state_colors]
+  created = "#c0a36e"
+  exited = "#090618"
+  paused = "#76946a"
+  running = "#7e9cd8"
+  stopping = "#c34043"

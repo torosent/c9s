@@ -1,0 +1,21 @@
+# c9s skin imported from k9s/nightfox.yaml
+[colors]
+  fg = "#cdcecf"
+  bg = "#192330"
+  border = "#2b3b51"
+  accent = "#719cd6"
+  dim = "#9d79d6"
+  success = "#63cdcf"
+  warning = "#719cd6"
+  error = "#c94f6d"
+  selection_fg = "#192330"
+  selection_bg = "#719cd6"
+  header_fg = "#cdcecf"
+  header_bg = "#2b3b51"
+
+[state_colors]
+  created = "#f4a261"
+  exited = "#cdcecf"
+  paused = "#719cd6"
+  running = "#63cdcf"
+  stopping = "#c94f6d"

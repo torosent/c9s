@@ -1,0 +1,54 @@
+name: GitHub Pages
+
+# NOTE: GitHub Pages on private repos requires GitHub Enterprise. While the
+# c9s repository is private, this workflow is manual-only so it doesn't fail
+# on every push. To deploy the docs site:
+#  1. Either make the repo public (and the schedule below will deploy on push), OR
+#  2. Run on GitHub Enterprise with Pages enabled, AND
+#  3. Trigger this workflow manually via the Actions tab.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Install mkdocs-material
+        run: pip install mkdocs-material
+
+      - name: Build docs
+        run: mkdocs build --strict
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+        with:
+          enablement: true
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: 'site'
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

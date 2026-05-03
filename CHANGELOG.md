@@ -1,0 +1,207 @@
+# Changelog
+
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [Unreleased]
+
+## [0.1.0] - 2026-05-02
+
+**This is the v0.1.0 cut — c9s's first proper release.** It collects:
+- All the features shipped across v0.0.1 through v0.0.7 (foundations, containers screen, streaming/logs/jobs, all resource screens, configuration system, k9s parity, demos, docs site).
+- goreleaser-driven multi-platform binaries (darwin + linux × amd64 + arm64).
+- Homebrew tap at torosent/homebrew-c9s.
+- GitHub Actions release workflow that publishes binaries + updates the brew tap.
+- macOS codesigning + notarization hooks (optional; activate by setting required secrets).
+
+### Added
+
+**Release infrastructure (v0.1.0)**
+- goreleaser configuration for multi-platform builds (darwin/linux × amd64/arm64)
+- Homebrew tap at `torosent/homebrew-c9s` with auto-managed formula
+- GitHub Actions release workflow triggered on version tags
+- Optional macOS codesigning and notarization support
+- Direct download archives with checksums
+- Install documentation in README (Homebrew, direct download, build from source)
+- Versioning policy documentation (0.x.y pre-1.0 semantics)
+
+**Core features (v0.0.1 - v0.0.7)**
+- **Terminal UI**: Fast, keyboard-driven interface inspired by k9s
+- **Resource screens**: Containers, images, volumes, networks, builder, registries, DNS domains, system services, errors, pinned resources, pulses, xray diagnostics
+- **Container operations**: Start, stop, restart, delete, inspect, streaming logs with color-coded multi-source output
+- **Background jobs**: Job manager with progress tracking, cancellation, and dedicated jobs screen
+- **Demo mode**: `--demo-data` flag populates fake client with sample data for exploration without a runtime
+- **Themes**: Customizable color schemes (k9s skin format supported) with 8 built-in themes
+- **Mouse support**: Click row select, wheel scroll, drag support
+- **Keyboard navigation**: vim-style bindings, colon commands (`:quit`, `:jobs`, etc.), sortable columns (Shift+S)
+- **Configuration**: `~/.config/c9s/config.yaml` for theme, refresh intervals, and keybindings
+- **Plugin system**: Extensible command execution and screen injection
+- **Logs**: Multi-source streaming with ANSI color preservation and buffering
+- **Metrics**: Live CPU/memory/disk stats for containers
+- **Documentation**: Auto-generated hotkeys reference, mkdocs-material site with quick-start and FAQ
+- **Demos**: VHS tape scripts and animated GIFs for key workflows
+
+### Changed
+
+- Sortable + mouse support extended to all tabular screens
+- Breadcrumb trail wired into root model for navigation history
+- Test coverage maintained at 74.4% (above 70% quality gate)
+
+### Fixed
+
+- Fixed `gen-hotkeys` tool to use `titleCase` instead of deprecated `strings.Title`
+
+## [0.0.7] - 2026-05-02
+
+### Added
+
+- **Demo mode**: `--demo-data` flag populates fake client with sample containers, images, volumes, networks, running builder, registries, DNS domains, and system services (T1)
+- **Jobs screen**: Integrated into screen registry with sorting, filtering, and mouse support; access via `:jobs` command (T2)
+- **Hotkeys documentation**: Auto-generated `docs/hotkeys.md` with global and per-screen keyboard reference; regenerate with `make docs-hotkeys` (T3)
+- **Documentation site**: mkdocs-material setup with quick-start guide, FAQ, contributing guide, and navigation structure (T4)
+- **Demo scripts**: VHS tape files in `tools/demos/` for containers, logs, builder, and jobs demos (T5)
+- **Animated GIF**: README now features `docs/assets/containers.gif` placeholder and enhanced feature list (T6)
+- **CI/CD**: GitHub Pages workflow deploys docs; demos workflow renders VHS tapes and commits GIFs automatically (T7)
+
+### Changed
+
+- Jobs screen refactored to implement `screens.Screen` and `screens.Sortable` interfaces
+- Coverage maintained at 74.3% (above 70% quality gate)
+
+### Fixed
+
+- Fixed `gen-hotkeys` tool to use `titleCase` instead of deprecated `strings.Title`
+
+## [Unreleased]
+
+### Added
+- Sortable + mouse support extended to all tabular screens (images, volumes, networks, registry, errors, pinned).
+- Breadcrumb trail wired into root model (push on screen/modal switch, pop on close; supports navigation history).
+
+## [0.0.6] - 2025-05-02
+
+### Added
+- Sort UI: Shift+S opens column picker modal for sortable screens (containers)
+- Breadcrumb trail package with Push/Pop/Render (foundation ready for wiring)
+- Mouse support: click row select, wheel scroll via tea.WithMouseCellMotion
+- Coverage backfill: pulses (85%), xray (80%), widgets (86%)
+- Test coverage for breadcrumbs, sortpicker modal, mouse handling
+- Sortable interface for screens with per-column sorting
+
+### Changed
+- Container screen now supports sorting by id/image/status/uptime/cpu/mem
+- Total test coverage: 77.6%
+
+## [0.0.5] - 2026-05-02
+
+### Added
+- Layered configuration system with TOML-based config files
+- `config.toml` for general settings (readonly, refresh intervals, theme, stream)
+- `hotkeys.toml` for keybind overrides (supports remapping any action)
+- `aliases.toml` for palette command aliases (e.g., `kpods = "containers"`)
+- `views.toml` for per-screen column visibility, order, and width customization
+- Live config reload with fsnotify - changes apply without restart
+- Read-only mode (`--readonly` flag or `[ui] readonly = true` in config)
+- Destructive commands blocked in read-only mode with toast notification
+- `[READONLY]` indicator in status bar when read-only mode active
+- Configuration precedence: CLI flags > config.toml > built-in defaults
+- Config loading from `$XDG_CONFIG_HOME/c9s/` or `~/.config/c9s/`
+- Skin system with 4 bundled themes: dark, light, k9s-dark, k9s-light
+- `:skin <name>` palette command to switch themes at runtime
+- k9s skin importer: `c9s import-skin <k9s-skin.yaml>` and `:import-skin` command
+- User skins loadable from `~/.config/c9s/skins/<name>.toml`
+- Plugin loader for user-defined commands from `~/.config/c9s/plugins/*.toml`
+- Plugin TOML format with scope, key, command template, and variable substitution
+- Build EWMA persistence to `~/.local/share/c9s/build-stats.toml` for time estimates
+- Documentation: `docs/configuration.md` with comprehensive examples
+- Documentation: `docs/skins.md` for skin system and k9s compatibility
+
+## [0.0.4] - 2026-05-02
+
+### Added
+- `:images` resource screen with REPO·TAG·ID·CREATED·SIZE table, 2 s refresh,
+  marks, and hotkeys (`d` inspect, `t` tag via TextInput, `P` push via progress
+  modal, `D` delete with confirm, `R` run-from-image opens the run form).
+- `:volumes` resource screen with NAME·DRIVER·MOUNTPOINT·SIZE·USED-BY columns
+  and `d`/`D` row hotkeys.
+- `:networks` resource screen with NAME·DRIVER·SUBNET·CONTAINERS columns and
+  `d`/`D` row hotkeys.
+- `:builder` single-card screen with STATE·CPU·MEM·UPTIME, color-coded state,
+  and `S`/`X`/`D`/`r` keys.
+- `:registry` screen with HOST·USER·DEFAULT, `L` opens login modal, `D`
+  logs out (confirm), `*` sets default. Login modal masks the password and
+  pipes it via stdin (never argv) to `container registry login --password-stdin`.
+- `:system` services table (SERVICE·STATE·PID·UPTIME) with `S`/`X` start/stop-all.
+- System sub-screens: `:df` (read-only), `:dns` (CRUD with `c`/`D`/`*`),
+  `:property` (edit `e`, reset `D`; read-only properties protected with toast),
+  `:kernel` (read-only viewport for `kernel.*` properties),
+  `:logs` (streaming `container system logs --follow` with ring buffer + auto-follow).
+- Multi-field form modals: `RunFormModel` (`:run`, also opened by `R` on Images;
+  pre-fillable image), `BuildFormModel` (`:build`). Tab cycles fields, Space
+  toggles booleans, Ctrl-Enter / Ctrl-D submits, Esc cancels.
+- Generic `TextInput` modal (`modals.NewTextInput(label, prompt, initial, palette)`)
+  with optional validator. Used by `:create`, `:tag`, `:save`, `:load`, and the
+  per-screen prompts (DNS create, property edit, image tag).
+- Palette commands: `:images`, `:i`, `:volumes`, `:v`, `:networks`, `:n`,
+  `:builder`, `:b`, `:registry`, `:reg`, `:system`, `:sys`, `:df`, `:dns`,
+  `:property`, `:kernel`, `:logs`, `:run [image]`, `:build [path]`,
+  `:login [host]`, `:create`, `:tag`, `:save`, `:load`, `:pull <ref>`,
+  `:push <ref>`.
+- Per-screen docs: `docs/screens/{images,volumes,networks,builder,registry,system,run,build}.md`.
+  `docs/keybinds.md` updated with the full palette + per-screen index.
+
+### Changed
+- `cli.Client` interface gained 24 new methods covering image (`ListImages`,
+  `InspectImage`, `TagImage`, `DeleteImage`, `PruneImages`, `LoadImage`,
+  `SaveImage`), volume, network, builder, registry, system, and run (including
+  `StreamSystemLogs` and `RunContainer` returning a `Stream`).
+- `cli.RegistryLogin` sends the password via the child process's stdin, never
+  via argv.
+- Tolerant JSON parsers: empty / `null` / unrecognized output now returns an
+  empty slice (or zero-value struct) so screens render gracefully instead of
+  surfacing a parser error.
+
+## [0.0.3] - 2026-05-02
+
+### Added
+- Streaming `Stream` type in `internal/cli` with build/pull/push/logs parsers.
+- `internal/jobs.Manager` for tracking concurrent streaming jobs (thread-safe, race-tested).
+- Log viewer modal with ring buffer (5000 lines), filter (`/`), follow-tail (`G`), save (`Ctrl+S`), level coloring (INFO=cyan, WARN=yellow, ERROR=red, DEBUG=dim), `t`/`T` timestamp toggles, multi-source merge with `[name]` prefix coloring.
+- Progress modal with build (step list + raw viewport, `v` toggle) and pull/push (layer table with mini progress bars) variants. `Ctrl+C` double-tap to cancel (2s window), `Ctrl+Z` detaches to `:jobs`.
+- `:jobs` screen lists running/completed background jobs with columns ID/KIND/TARGET/STATE/ELAPSED/LINES. `Enter` re-attaches modal, `Ctrl+C` cancels job, `D` clears done.
+- Palette commands: `:logs <id>`, `:build <path>`, `:pull <ref>`, `:push <ref>`, `:run <image>`, `:jobs`.
+- `l` row hotkey on containers screen opens log viewer (single or multi-source if marks set).
+- `docs/streaming.md` comprehensive guide.
+
+### Changed
+- `cli.Client` interface extended with `StreamLogs`, `StreamBuild`, `StreamPull`, `StreamPush` methods.
+- `theme.SourceColors` palette for multi-source coloring.
+
+## [0.0.2] - 2026-05-02
+
+### Added
+- `:containers` resource screen with table, 2-second refresh, marks, and hotkeys (s shell, d inspect, x stop, Shift+K for removal operations, Shift+R restart, Shift+D delete, p pause).
+- Confirm/Help/Inspect modals with a stack-based modal system.
+- `Screen` interface + screen registry in the root model. Other resource screens are registered as "not yet available" placeholders for Plan 4.
+- `keymap.Map` with default + override merge.
+- `tea.ExecProcess` suspend-and-shell-out for `s` (container exec).
+- Capability gating: `p` (pause) emits a status toast when unsupported and is annotated in help.
+
+### Changed
+- Root model refactored from a flat splash + placeholder to a router that delegates to active screen + modal stack.
+- Toolchain pin bumped to Go 1.24.2 to match newer transitive dependencies.
+
+### Fixed
+- `InspectModel.View` no longer ineffectively assigns to value-receiver state; viewport is now initialised in the constructor and resized per render.
+
+## [0.0.1] - 2026-05-02
+
+### Added
+- Project skeleton: Go module, Bubble Tea root, splash, status bar, capabilities probe.
+- CLI gateway interface (`internal/cli`) with `DefaultClient` (shells out to `container`) and `Fake` for tests.
+- Clock abstraction (`internal/clock`) and snapshot cache (`internal/state`).
+- Continuous integration workflow with lint, race-detector tests, and coverage gate.
+- Architecture, install, and index pages (placeholders).
+- Design spec at `docs/superpowers/specs/2026-05-02-c9s-design.md`.

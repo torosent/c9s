@@ -1,0 +1,82 @@
+version: 2
+project_name: c9s
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - id: c9s
+    main: ./cmd/c9s
+    binary: c9s
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - darwin
+    goarch:
+      - arm64
+    ldflags:
+      - -s -w
+      - -X github.com/torosent/c9s/internal/version.Version={{.Version}}
+      - -X github.com/torosent/c9s/internal/version.Commit={{.Commit}}
+      - -X github.com/torosent/c9s/internal/version.Date={{.Date}}
+
+archives:
+  - id: c9s
+    formats:
+      - tar.gz
+    name_template: >-
+      {{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}
+    files:
+      - LICENSE
+      - README.md
+      - CHANGELOG.md
+
+checksum:
+  name_template: 'checksums.txt'
+  algorithm: sha256
+
+snapshot:
+  version_template: "{{ incpatch .Version }}-next"
+
+release:
+  draft: false
+  prerelease: auto
+  replace_existing_artifacts: true
+  name_template: "c9s {{ .Version }}"
+  header: |
+    ## c9s {{ .Tag }}
+    
+    See [CHANGELOG.md](https://github.com/torosent/c9s/blob/main/CHANGELOG.md) for details.
+
+notarize:
+  macos:
+    - enabled: '{{ isEnvSet "MACOS_SIGN_P12" }}'
+      sign:
+        certificate: "{{ .Env.MACOS_SIGN_P12 }}"
+        password: "{{ .Env.MACOS_SIGN_P12_PASSWORD }}"
+      notarize:
+        issuer_id: "{{ .Env.MACOS_NOTARY_ISSUER_ID }}"
+        key_id: "{{ .Env.MACOS_NOTARY_KEY_ID }}"
+        key: "{{ .Env.MACOS_NOTARY_KEY_FILE }}"
+        wait: true
+        timeout: 20m
+
+homebrew_casks:
+  - name: c9s
+    repository:
+      owner: torosent
+      name: homebrew-c9s
+      branch: main
+      token: "{{ .Env.HOMEBREW_TAP_TOKEN }}"
+    homepage: https://github.com/torosent/c9s
+    description: "Terminal UI for Apple Containers (k9s for container)"
+    license: Apache-2.0
+    binaries:
+      - c9s
+    hooks:
+      post:
+        install: |
+          if OS.mac?
+            system_command "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "#{staged_path}/c9s"]
+          end

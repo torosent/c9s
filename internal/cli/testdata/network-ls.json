@@ -1,0 +1,14 @@
+[
+  {
+    "name": "bridge0",
+    "driver": "bridge",
+    "subnet": "192.168.64.0/24",
+    "containers": ["api-server", "worker-1"]
+  },
+  {
+    "name": "isolated",
+    "driver": "bridge",
+    "subnet": "10.0.0.0/24",
+    "containers": []
+  }
+]

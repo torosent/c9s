@@ -1,0 +1,21 @@
+# c9s skin imported from k9s/monokai.yaml
+[colors]
+  fg = "#ffffff"
+  bg = "default"
+  border = "#666666"
+  accent = "#856cc4"
+  dim = "#f72972"
+  success = "#69d9ed"
+  warning = "#856cc4"
+  error = "#f72972"
+  selection_fg = "default"
+  selection_bg = "#856cc4"
+  header_fg = "#856cc4"
+  header_bg = "default"
+
+[state_colors]
+  created = "#69d9ed"
+  exited = "#e1df8f"
+  paused = "#856cc4"
+  running = "#69d9ed"
+  stopping = "#f72972"

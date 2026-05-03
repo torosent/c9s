@@ -1,0 +1,4 @@
+[
+  {"name": "internal.local", "default": true},
+  {"name": "dev.local",      "default": false}
+]

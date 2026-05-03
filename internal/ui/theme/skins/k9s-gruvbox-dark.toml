@@ -1,0 +1,21 @@
+# c9s skin imported from k9s/gruvbox-dark.yaml
+[colors]
+  fg = "#ebdbb2"
+  bg = "#272727"
+  border = "#ebdbb2"
+  accent = "#448488"
+  dim = "#b16185"
+  success = "#689d69"
+  warning = "#448488"
+  error = "#cc231c"
+  selection_fg = "#272727"
+  selection_bg = "#448488"
+  header_fg = "#ebdbb2"
+  header_bg = "#272727"
+
+[state_colors]
+  created = "#d79920"
+  exited = "#ebdbb2"
+  paused = "#448488"
+  running = "#689d69"
+  stopping = "#cc231c"

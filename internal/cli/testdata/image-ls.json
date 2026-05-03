@@ -1,0 +1,29 @@
+[
+  {
+    "reference": "ghcr.io/acme/api:1.4.2",
+    "fullSize": "500 MB",
+    "descriptor": {
+      "digest": "sha256:abc123def456",
+      "size": 524288000,
+      "mediaType": "application/vnd.oci.image.index.v1+json"
+    }
+  },
+  {
+    "reference": "docker.io/library/nginx:latest",
+    "fullSize": "150 MB",
+    "descriptor": {
+      "digest": "sha256:fedcba987654",
+      "size": 157286400,
+      "mediaType": "application/vnd.oci.image.index.v1+json"
+    }
+  },
+  {
+    "reference": "localhost/test:dev",
+    "fullSize": "100 MB",
+    "descriptor": {
+      "digest": "sha256:1234567890ab",
+      "size": 104857600,
+      "mediaType": "application/vnd.oci.image.index.v1+json"
+    }
+  }
+]

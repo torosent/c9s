@@ -1,0 +1,91 @@
+[
+  {
+    "startedDate": 799131770.94531,
+    "status": "stopped",
+    "configuration": {
+      "id": "c93b06b2-0788-4779-bfb0-927c2bd6f8be",
+      "virtualization": false,
+      "publishedPorts": [
+        {
+          "count": 1,
+          "hostPort": 8080,
+          "proto": "tcp",
+          "hostAddress": "0.0.0.0",
+          "containerPort": 8080
+        },
+        {
+          "count": 1,
+          "hostPort": 8082,
+          "proto": "tcp",
+          "hostAddress": "0.0.0.0",
+          "containerPort": 8082
+        }
+      ],
+      "platform": {
+        "architecture": "arm64",
+        "os": "linux"
+      },
+      "image": {
+        "reference": "mcr.microsoft.com/dts/dts-emulator:latest"
+      },
+      "networks": [
+        {
+          "options": {
+            "hostname": "test-container",
+            "mtu": 1280
+          },
+          "network": "default"
+        }
+      ],
+      "resources": {
+        "cpus": 4,
+        "memoryInBytes": 1073741824
+      }
+    },
+    "networks": []
+  },
+  {
+    "startedDate": 799200000.0,
+    "status": "running",
+    "configuration": {
+      "id": "a12b34c5-6789-4def-abc0-123456789abc",
+      "virtualization": false,
+      "publishedPorts": [
+        {
+          "count": 1,
+          "hostPort": 3000,
+          "proto": "tcp",
+          "hostAddress": "127.0.0.1",
+          "containerPort": 3000
+        }
+      ],
+      "platform": {
+        "architecture": "arm64",
+        "os": "linux"
+      },
+      "image": {
+        "reference": "nginx:latest"
+      },
+      "networks": [
+        {
+          "options": {
+            "hostname": "nginx-server",
+            "mtu": 1500
+          },
+          "network": "default"
+        }
+      ],
+      "resources": {
+        "cpus": 2,
+        "memoryInBytes": 536870912
+      }
+    },
+    "networks": [
+      {
+        "network": "default",
+        "hostname": "nginx-server",
+        "ipv4Address": "192.168.64.42/24"
+      }
+    ]
+  }
+]

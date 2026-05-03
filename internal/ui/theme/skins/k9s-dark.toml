@@ -1,0 +1,21 @@
+# k9s-compatible dark theme
+[colors]
+fg = "#d8dee9"
+bg = "#2e3440"
+border = "#4c566a"
+accent = "#88c0d0"
+dim = "#616e88"
+success = "#a3be8c"
+warning = "#ebcb8b"
+error = "#bf616a"
+selection_fg = "#eceff4"
+selection_bg = "#5e81ac"
+header_fg = "#eceff4"
+header_bg = "#3b4252"
+
+[state_colors]
+running = "#a3be8c"
+exited = "#616e88"
+paused = "#ebcb8b"
+stopping = "#bf616a"
+created = "#88c0d0"

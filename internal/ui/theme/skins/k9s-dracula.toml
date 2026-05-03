@@ -1,0 +1,21 @@
+# c9s skin imported from k9s/dracula.yaml
+[colors]
+  fg = "#f8f8f2"
+  bg = "#282a36"
+  border = "#44475a"
+  accent = "#bd93f9"
+  dim = "#ff79c6"
+  success = "#8be9fd"
+  warning = "#bd93f9"
+  error = "#ff5555"
+  selection_fg = "#282a36"
+  selection_bg = "#bd93f9"
+  header_fg = "#f8f8f2"
+  header_bg = "#44475a"
+
+[state_colors]
+  created = "#ffb86c"
+  exited = "#f8f8f2"
+  paused = "#bd93f9"
+  running = "#8be9fd"
+  stopping = "#ff5555"

@@ -1,0 +1,21 @@
+# k9s-compatible light theme
+[colors]
+fg = "#3b4252"
+bg = "#eceff4"
+border = "#d8dee9"
+accent = "#5e81ac"
+dim = "#4c566a"
+success = "#8fbcbb"
+warning = "#d08770"
+error = "#bf616a"
+selection_fg = "#2e3440"
+selection_bg = "#81a1c1"
+header_fg = "#2e3440"
+header_bg = "#e5e9f0"
+
+[state_colors]
+running = "#8fbcbb"
+exited = "#4c566a"
+paused = "#d08770"
+stopping = "#bf616a"
+created = "#5e81ac"

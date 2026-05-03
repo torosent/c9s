@@ -1,0 +1,21 @@
+# c9s light theme
+[colors]
+fg = "#24292f"
+bg = "#ffffff"
+border = "#d0d7de"
+accent = "#0969da"
+dim = "#57606a"
+success = "#1a7f37"
+warning = "#bf8700"
+error = "#cf222e"
+selection_fg = "#ffffff"
+selection_bg = "#0969da"
+header_fg = "#24292f"
+header_bg = "#f6f8fa"
+
+[state_colors]
+running = "#1a7f37"
+exited = "#57606a"
+paused = "#bf8700"
+stopping = "#cf222e"
+created = "#0969da"
