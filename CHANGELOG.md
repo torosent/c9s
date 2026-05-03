@@ -7,6 +7,128 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-05-03
+
+This is a follow-up to v0.1.0 addressing the v0.1.0 code review. It
+contains no new features. Two user-visible bugs are fixed (Shift+S sort
+silently no-op'd; long sessions leaked goroutines/tickers), the
+unimplemented plugin advertising is removed, the docs/CHANGELOG no
+longer claim platforms or features that don't ship, and the release
+pipeline + CI gain several robustness improvements.
+
+### Fixed
+
+- **Sort modal applied changes again** (review C1). Pressing Shift+S
+  on every tabular screen used to open the column picker but the
+  selection was silently discarded due to a value-vs-pointer receiver
+  mismatch on the screens' ApplySort method. Standardized all screen
+  constructors on `*Model` and pointer receivers; added a regression
+  test that asserts the anonymous interface assertion succeeds for
+  every sortable screen registered in the app.
+- **Long-running c9s sessions no longer leak goroutines + tickers**
+  (review C2). `clock.Real().Tick(d)` previously spawned a goroutine
+  + `time.NewTicker(d)` per call that ran forever; with a 2-second
+  refresh cadence this leaked ~1800 goroutines per screen per hour.
+  Tick is now a thin wrapper around `time.After(d)` that the runtime
+  GCs after firing.
+- **`:skin` reload preserves screen state** (review I9). The skin
+  command used to recreate every screen via its New() constructor,
+  discarding filter, marks, sort key, and scroll position; five
+  screens (errors, pinned, xray, pulses, jobs) weren't rebuilt at all
+  and kept rendering with the old palette. Now broadcasts a
+  `screens.PaletteChangedMsg` to every screen so colors refresh while
+  internal state is preserved.
+- **Race on `ProgressModel.awaitCancel`** (review I2). The 2-second
+  cancel-window expiration used to write a Bubble Tea field from a
+  `time.AfterFunc` callback, racing with the event loop. Replaced
+  with `tea.Tick` returning `cancelWindowMsg{gen}` routed through
+  Update; a generation counter guards against stale messages from
+  prior windows.
+- **Stream cancel watcher no longer leaks** (review M11). The
+  goroutine watching for `ctx.Done()` blocked forever when the
+  command exited naturally. Now coordinates with the reader via a
+  `finished` channel: it exits immediately on natural completion and
+  only escalates to SIGKILL after waiting up to 2 s on `finished`
+  following SIGINT (review M7).
+- **All UI→CLI calls now have a 5 s timeout** (review I6). 54 call
+  sites under `internal/ui/screens` used `context.Background()`,
+  which combined with C2 to compound goroutine accumulation behind a
+  hung `container` subprocess. New `cli.DefaultCtx()` helper bounds
+  every fetch/action.
+- **`parsePruneCount` no longer mis-parses ID digits** (review M3).
+  The old "first run of digits" heuristic would parse
+  `Removed sha256:abc123def 5 containers` as 256. Replaced with a
+  regex anchored on the unit word (containers/images/networks/volumes).
+- **Pause/Unpause errors are detectable via errors.Is** (review M4).
+  Introduced `cli.ErrUnsupported` sentinel; PauseContainer/
+  UnpauseContainer wrap that instead of `context.Canceled`, so
+  callers checking for cancellation no longer get false positives.
+- **`pinned.List` now uses sort.Slice** (review M5).
+- **`runVoid` preserves stdout in error wrappers** (review M12).
+  Some `container` subcommands emit useful failure context on stdout;
+  the wrapped error's Hint now falls back to stdout when stderr is
+  empty.
+- **Hardcoded `container` binary path eliminated from the shell-out
+  path** (review M1). `cli.Client` now exposes `Bin()` returning the
+  configured binary path; the interactive `s`-key shell-out uses it.
+- **Docs site builds in `mkdocs --strict`** (review I3). Removed
+  broken `docs/superpowers/...` links from `index.md`,
+  `architecture.md`, `README.md`, and CHANGELOG; added a docs job to
+  `ci.yml` that runs `mkdocs build --strict` to catch link rot
+  before the Pages workflow does.
+- **Stale `torosent/container-tui` references removed** (review I4).
+  `mkdocs.yml`, `docs/quick-start.md`, `docs/faq.md`, and
+  `docs/contributing.md` now point at `torosent/c9s`.
+- **CHANGELOG corrected** (review I5). The v0.1.0 entry no longer
+  claims darwin+linux × amd64+arm64 binaries (we only build
+  darwin/arm64) and the duplicate `## [Unreleased]` heading is gone.
+
+### Removed
+
+- **Plugin system** (review I1). The v0.1.0 plugin loader was wired
+  up but never invoked anywhere in `internal/ui` (verified by grep).
+  Removed the `internal/plugins/` package, the `config.Plugin` type,
+  the configuration docs, the FAQ entry, the k9s-migration row, and
+  the README/CHANGELOG bullets that advertised it. Will reappear if
+  and when the runtime hookup is implemented.
+
+### Changed
+
+- **`brews:` migrated to `homebrew_casks:`** in `.goreleaser.yaml`.
+  GoReleaser deprecated `brews` in v2.10. The cask publishes to
+  `Casks/c9s.rb` in the `torosent/homebrew-c9s` tap and includes a
+  `postflight` xattr hook that strips the macOS quarantine attribute
+  for unsigned binaries (replace with proper notarization once the
+  Apple Developer account is wired up).
+- **`replace_existing_artifacts: true`** in `.goreleaser.yaml`. Re-runs
+  of the release workflow on the same tag now overwrite assets cleanly
+  rather than failing with HTTP 422.
+- **Goreleaser `before:` hook is `go mod verify`** instead of
+  `go mod tidy` (review I7), so the release run can't mutate
+  `go.mod`/`go.sum` away from what CI tested.
+- **CI gains a "go mod tidy is a no-op" step** that fails if running
+  `go mod tidy` would change the lock files.
+- **Mkdocs nav** now includes architecture, install, keybinds,
+  demos-rendering, and the previously orphaned screen pages
+  (`build`, `errors`, `pinned`, `pulses`, `run`, `xray`).
+- **Tap install instructions** simplified to the two-step form:
+  ```
+  brew tap torosent/c9s
+  brew install c9s
+  ```
+
+### Internal
+
+- Standardized screen constructors on returning `*Model`. All Update
+  methods on screen types now use pointer receivers consistently.
+- Added `cli.Fake.CallsCopy()` for thread-safe access to the recorded
+  call list.
+- Added `cli.Client.Bin()` to interface and both implementations.
+- Added `internal/cli/timeout.go` with `DefaultCtx()` helper.
+- Added a smoke + sortable-interface test for the previously
+  zero-coverage `internal/ui/screens/pinned` package.
+- Removed accidentally committed `internal/ui/screens/jobs/jobs.go.bak`.
+
 ## [0.1.0] - 2026-05-02
 
 **This is the v0.1.0 cut — c9s's first proper release.** It collects:
