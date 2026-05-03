@@ -129,6 +129,11 @@ func (f *Fake) CallsCopy() []string {
 	return out
 }
 
+// Bin implements Client. Returns "container" so callers exercising the
+// interactive shell-out path don't blow up in tests; production code paths
+// that genuinely need a binary path use DefaultClient.
+func (f *Fake) Bin() string { return "container" }
+
 // Version implements Client.
 func (f *Fake) Version(_ context.Context) (string, error) {
 	f.mu.Lock()

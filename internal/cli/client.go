@@ -10,6 +10,11 @@ import (
 // Client is the gateway to Apple's `container` CLI. It is the only
 // interface the rest of c9s uses to talk to the runtime.
 type Client interface {
+	// Bin returns the path to the underlying CLI binary. Production code
+	// uses this when it has to spawn an interactive child process (e.g.,
+	// `container exec -it ...`) that can't go through the normal
+	// stdout-collecting helpers.
+	Bin() string
 	// Capabilities probes the runtime for feature flags.
 	Capabilities(ctx context.Context) (Capabilities, error)
 	// Version returns the raw stdout of `container --version`.
@@ -106,6 +111,9 @@ func NewDefaultClient(opts ...Option) *DefaultClient {
 	}
 	return c
 }
+
+// Bin implements Client.
+func (c *DefaultClient) Bin() string { return c.bin }
 
 // Version implements Client.
 func (c *DefaultClient) Version(ctx context.Context) (string, error) {

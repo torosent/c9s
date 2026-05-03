@@ -20,10 +20,6 @@ c9s import-skin ~/.config/k9s/skins/my-skin.yaml
 
 See [Skins](skins.md) for more details.
 
-### How do I add a plugin?
-
-Plugins are defined in `~/.config/c9s/plugins.yaml`. See [Configuration](configuration.md#plugins) for the format.
-
 ### Does c9s support remote container hosts?
 
 c9s uses the Apple Containers CLI under the hood, so if your CLI is configured to connect to a remote host, c9s will use that connection automatically.

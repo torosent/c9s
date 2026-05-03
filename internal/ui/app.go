@@ -18,7 +18,6 @@ import (
 	"github.com/torosent/c9s/internal/jobs"
 	"github.com/torosent/c9s/internal/log"
 	"github.com/torosent/c9s/internal/pinned"
-	"github.com/torosent/c9s/internal/plugins"
 	"github.com/torosent/c9s/internal/state"
 	"github.com/torosent/c9s/internal/ui/breadcrumbs"
 	"github.com/torosent/c9s/internal/ui/keymap"
@@ -69,7 +68,6 @@ type Model struct {
 	cmdActive bool
 	cmdBuf    string
 	aliases   map[string]string // command aliases from config
-	plugins   []plugins.Plugin  // loaded plugins
 	readonly  bool              // read-only mode disables destructive operations
 	skinName  string            // currently loaded skin name (for header display)
 
@@ -82,7 +80,7 @@ type capabilitiesMsg struct {
 }
 
 // NewApp constructs the root model.
-func NewApp(client cli.Client, clk clock.Clock, p theme.Palette, cfg config.Config, pluginList []plugins.Plugin) Model {
+func NewApp(client cli.Client, clk clock.Clock, p theme.Palette, cfg config.Config) Model {
 	// Set up data directories
 	dataDir := os.Getenv("XDG_DATA_HOME")
 	if dataDir == "" {
@@ -160,7 +158,6 @@ func NewApp(client cli.Client, clk clock.Clock, p theme.Palette, cfg config.Conf
 		active:        "containers",
 		headerVisible: true,
 		aliases:       cfg.Aliases,
-		plugins:       pluginList,
 		readonly:      cfg.UI.ReadOnly,
 		skinName:      "default",
 	}
@@ -318,8 +315,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, modal.Init()
 
 	case screens.SuspendShellMsg:
-		// #nosec G204 -- ID/Shell originate from internal CLI snapshots and the screen's caps probe, not user-supplied strings.
-		cmd := tea.ExecProcess(exec.Command("container", "exec", "-it", msg.ID, msg.Shell), func(error) tea.Msg {
+		// #nosec G204 -- ID/Shell originate from internal CLI snapshots and the screen's caps probe, not user-supplied strings; binary path is the configured cli.Client.Bin().
+		cmd := tea.ExecProcess(exec.Command(m.client.Bin(), "exec", "-it", msg.ID, msg.Shell), func(error) tea.Msg {
 			return nil
 		})
 		return m, cmd

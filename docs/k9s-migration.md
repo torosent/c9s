@@ -17,7 +17,6 @@ feel familiar. This page maps k9s concepts to c9s.
 | Node | Builder + system services (`:builder`, `:system`) |
 | Context | (none — there is one host) |
 | Skin (YAML) | Skin (TOML) — see [Skins](skins.md) |
-| Plugin | Plugin (TOML) — see [Configuration](configuration.md#plugins) |
 | `pulses` | `:pulses` |
 | `xray` | `:xray` |
 | `popeye` | (not implemented) |
@@ -74,7 +73,6 @@ This writes `~/.config/c9s/skins/your-k9s-skin.toml`. Activate with:
 | `~/.config/k9s/hotkeys.yaml` | `~/.config/c9s/hotkeys.toml` |
 | `~/.config/k9s/aliases.yaml` | `~/.config/c9s/aliases.toml` |
 | `~/.config/k9s/views.yaml` | `~/.config/c9s/views.toml` |
-| `~/.config/k9s/plugins/*.yaml` | `~/.config/c9s/plugins/*.toml` |
 | `~/.config/k9s/skins/*.yaml` | `~/.config/c9s/skins/*.toml` |
 
 YAML in k9s, TOML in c9s. The schema is similar but not identical — see

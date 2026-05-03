@@ -40,7 +40,8 @@ type ParseFunc func(line string) []StreamEvent
 
 // runStream executes a command and streams parsed events through channels.
 // It handles context cancellation by sending SIGINT first, then SIGKILL
-// after a 2-second grace period. Both channels are closed before returning.
+// after a 2-second grace period (or immediately if the process has already
+// exited gracefully). Both channels are closed before returning.
 func runStream(ctx context.Context, cmd *exec.Cmd, parse ParseFunc) (Stream, error) {
 	eventsCh := make(chan StreamEvent, 100)
 	doneCh := make(chan StreamResult, 1)
@@ -77,20 +78,37 @@ func runStream(ctx context.Context, cmd *exec.Cmd, parse ParseFunc) (Stream, err
 		Cancel: cancel,
 	}
 
-	// Goroutine to handle context cancellation
-	go func() {
-		<-ctx.Done()
-		if cmd.Process != nil {
-			// Send SIGINT first
-			_ = cmd.Process.Signal(syscall.SIGINT)
+	// finished is closed by the reader goroutine once cmd.Wait() has returned.
+	// Both the reader and the cancel-watcher use it to coordinate cleanup so
+	// that:
+	//   - if the command exits naturally, the cancel-watcher unblocks via
+	//     `finished` instead of leaking on `<-ctx.Done()` forever; and
+	//   - if cancellation is requested, the watcher waits up to 2 s for a
+	//     SIGINT to take effect rather than always sleeping a full 2 s and
+	//     issuing an unconditional Kill.
+	finished := make(chan struct{})
 
-			// Wait 2 seconds, then SIGKILL if still running
-			time.Sleep(2 * time.Second)
-			_ = cmd.Process.Kill()
+	// Cancel watcher: SIGINT-then-SIGKILL on cancellation, exit early on
+	// natural completion.
+	go func() {
+		select {
+		case <-finished:
+			return
+		case <-ctx.Done():
+			if cmd.Process == nil {
+				return
+			}
+			_ = cmd.Process.Signal(syscall.SIGINT)
+			select {
+			case <-finished:
+			case <-time.After(2 * time.Second):
+				_ = cmd.Process.Kill()
+			}
 		}
 	}()
 
-	// Goroutine to read and parse output
+	// Reader/parser goroutine: scans output, emits events, waits for the
+	// command to exit and reports the StreamResult, then signals `finished`.
 	go func() {
 		defer close(eventsCh)
 		defer func() {
@@ -107,6 +125,8 @@ func runStream(ctx context.Context, cmd *exec.Cmd, parse ParseFunc) (Stream, err
 			} else {
 				result.ExitCode = 0
 			}
+
+			close(finished)
 
 			doneCh <- result
 			close(doneCh)

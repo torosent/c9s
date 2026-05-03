@@ -22,7 +22,7 @@ func TestAppShowsSplashThenContainersThenQuits(t *testing.T) {
 			{ID: "c2", ShortID: "c2", Image: "redis", Status: "exited"},
 		},
 	}
-	app := NewApp(fake, clock.NewFake(time.Unix(0, 0)), theme.DefaultDark(), config.Default(), nil)
+	app := NewApp(fake, clock.NewFake(time.Unix(0, 0)), theme.DefaultDark(), config.Default())
 	tm := teatest.NewTestModel(t, app, teatest.WithInitialTermSize(120, 40))
 
 	// Frame 1: splash visible
@@ -81,7 +81,7 @@ func TestAppCtrlETogglesHeader(t *testing.T) {
 		VersionResp:        "container CLI version 0.12.1",
 		ListContainersResp: []cli.Container{{ID: "c1", ShortID: "c1", Image: "nginx", Status: "running"}},
 	}
-	app := NewApp(fake, clock.NewFake(time.Unix(0, 0)), theme.DefaultDark(), config.Default(), nil)
+	app := NewApp(fake, clock.NewFake(time.Unix(0, 0)), theme.DefaultDark(), config.Default())
 	tm := teatest.NewTestModel(t, app, teatest.WithInitialTermSize(120, 40))
 
 	// Dismiss splash
@@ -106,7 +106,7 @@ func TestAppRunCommandUnknown(t *testing.T) {
 		VersionResp:        "container CLI version 0.12.1",
 		ListContainersResp: []cli.Container{{ID: "c1", ShortID: "c1", Image: "nginx", Status: "running"}},
 	}
-	app := NewApp(fake, clock.NewFake(time.Unix(0, 0)), theme.DefaultDark(), config.Default(), nil)
+	app := NewApp(fake, clock.NewFake(time.Unix(0, 0)), theme.DefaultDark(), config.Default())
 	tm := teatest.NewTestModel(t, app, teatest.WithInitialTermSize(120, 40))
 
 	// Dismiss splash

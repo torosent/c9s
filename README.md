@@ -13,7 +13,6 @@ A k9s-style terminal UI for managing [Apple's `container` runtime](https://githu
 - 🔨 **Background jobs** for builds, pulls, pushes — `Ctrl+Z` detach, `:jobs` re-attach
 - 🖱️ **Mouse support** (click row, click header to sort, scroll wheel)
 - 📊 **k9s parity** — `:pulses` dashboard, `:xray` resource graph, `:pinned`, `:errors`
-- 🔌 **Plugin system** — define your own hotkeys + shell commands per resource
 - 🛡️ **Read-only mode** — `--readonly` hides destructive bindings
 
 ## Requirements

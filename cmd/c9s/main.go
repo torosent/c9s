@@ -13,7 +13,6 @@ import (
 	"github.com/torosent/c9s/internal/cli/demodata"
 	"github.com/torosent/c9s/internal/clock"
 	"github.com/torosent/c9s/internal/config"
-	"github.com/torosent/c9s/internal/plugins"
 	"github.com/torosent/c9s/internal/ui"
 	"github.com/torosent/c9s/internal/ui/theme"
 	"github.com/torosent/c9s/internal/version"
@@ -64,14 +63,6 @@ func main() {
 		cfg.UI.ReadOnly = true
 	}
 
-	// Load plugins
-	pluginList, err := plugins.LoadFromXDG()
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "c9s: plugin load failed: %v\n", err)
-		// Continue without plugins
-		pluginList = nil
-	}
-
 	// Build client: demo data or real runtime
 	var client cli.Client
 	if *demoData {
@@ -92,7 +83,7 @@ func main() {
 		}
 	}
 
-	app := ui.NewApp(client, clock.Real(), palette, cfg, pluginList)
+	app := ui.NewApp(client, clock.Real(), palette, cfg)
 	app.SetSkinName(skinName)
 	p := tea.NewProgram(app, tea.WithAltScreen(), tea.WithMouseCellMotion())
 	if _, err := p.Run(); err != nil {

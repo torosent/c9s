@@ -45,9 +45,6 @@ func TestDefault(t *testing.T) {
 	if cfg.Views == nil {
 		t.Error("expected non-nil Views map")
 	}
-	if cfg.Plugins == nil {
-		t.Error("expected non-nil Plugins slice")
-	}
 }
 
 func TestLoad_EmptyFile(t *testing.T) {
@@ -193,14 +190,6 @@ name = "light"
 [aliases]
 kpods = "containers"
 kimg = "images"
-
-[[plugins]]
-name = "test-plugin"
-scope = "containers"
-shortcut = "Shift-L"
-command = "echo $RESOURCE_NAME"
-confirm = false
-background = false
 `
 
 	if err := os.WriteFile(cfgPath, []byte(tomlContent), 0o644); err != nil {
@@ -253,21 +242,6 @@ background = false
 	}
 	if cfg.Aliases["kimg"] != "images" {
 		t.Error("expected alias kimg -> images")
-	}
-
-	// Plugins checks
-	if len(cfg.Plugins) != 1 {
-		t.Fatalf("expected 1 plugin, got %d", len(cfg.Plugins))
-	}
-	plugin := cfg.Plugins[0]
-	if plugin.Name != "test-plugin" {
-		t.Errorf("expected plugin name 'test-plugin', got %q", plugin.Name)
-	}
-	if plugin.Scope != "containers" {
-		t.Errorf("expected scope 'containers', got %q", plugin.Scope)
-	}
-	if plugin.Shortcut != "Shift-L" {
-		t.Errorf("expected shortcut 'Shift-L', got %q", plugin.Shortcut)
 	}
 }
 

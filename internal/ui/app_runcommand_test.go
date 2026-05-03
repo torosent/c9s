@@ -19,7 +19,7 @@ import (
 func newTestApp(t *testing.T) Model {
 	t.Helper()
 	fake := cli.NewFake()
-	app := NewApp(fake, clock.NewFake(time.Unix(0, 0)), theme.DefaultDark(), config.Default(), nil)
+	app := NewApp(fake, clock.NewFake(time.Unix(0, 0)), theme.DefaultDark(), config.Default())
 	// Force size + dismiss splash
 	m, _ := app.Update(tea.WindowSizeMsg{Width: 120, Height: 40})
 	app = m.(Model)

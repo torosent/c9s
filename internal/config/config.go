@@ -20,7 +20,6 @@ type Config struct {
 	Hotkeys map[string]string     `toml:"hotkeys"`
 	Aliases map[string]string     `toml:"aliases"`
 	Views   map[string]ViewConfig `toml:"views"`
-	Plugins []Plugin              `toml:"plugins"`
 }
 
 // UI holds UI-related settings.
@@ -56,17 +55,6 @@ type ColumnConfig struct {
 	Order   int  `toml:"order"`
 }
 
-// Plugin represents a user-defined shell plugin.
-type Plugin struct {
-	Name        string `toml:"name"`
-	Scope       string `toml:"scope"`
-	Shortcut    string `toml:"shortcut"`
-	Description string `toml:"description"`
-	Command     string `toml:"command"`
-	Confirm     bool   `toml:"confirm"`
-	Background  bool   `toml:"background"`
-}
-
 // Default returns the default configuration.
 func Default() Config {
 	return Config{
@@ -88,7 +76,6 @@ func Default() Config {
 		Hotkeys: make(map[string]string),
 		Aliases: make(map[string]string),
 		Views:   make(map[string]ViewConfig),
-		Plugins: []Plugin{},
 	}
 }
 
@@ -124,7 +111,6 @@ func Load(path string) (Config, error) {
 		Hotkeys map[string]string     `toml:"hotkeys"`
 		Aliases map[string]string     `toml:"aliases"`
 		Views   map[string]ViewConfig `toml:"views"`
-		Plugins []Plugin              `toml:"plugins"`
 	}
 
 	var partial partialConfig
@@ -180,11 +166,6 @@ func Load(path string) (Config, error) {
 	}
 	if len(partial.Views) > 0 {
 		cfg.Views = partial.Views
-	}
-
-	// Merge plugins
-	if len(partial.Plugins) > 0 {
-		cfg.Plugins = partial.Plugins
 	}
 
 	return cfg, nil

@@ -82,7 +82,6 @@ c9s/
 │   │   └── theme/        # Color scheme management
 │   ├── jobs/             # Background job manager
 │   ├── config/           # Configuration loading
-│   ├── plugins/          # Plugin system
 │   └── clock/            # Testable time abstraction
 ├── docs/                 # Documentation
 └── tools/demos/          # VHS tape scripts
