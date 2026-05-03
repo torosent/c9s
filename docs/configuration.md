@@ -27,7 +27,7 @@ build_save_logs = false
 build_autoclose = true
 
 [theme]
-name = "dark"
+name = "k9s-gruvbox-dark"
 ```
 
 #### UI Section
@@ -45,7 +45,7 @@ name = "dark"
 
 #### Theme Section
 
-- `name` (string): Theme name to load. Default: `"dark"`
+- `name` (string): Theme name to load. Default: `"k9s-gruvbox-dark"`. Other bundled options include `"dark"`, `"light"`, `"k9s-dark"`, `"k9s-light"`, `"k9s-dracula"`, `"k9s-gruvbox-light"`, `"k9s-monokai"`, `"k9s-nightfox"`, `"k9s-nord"`, `"k9s-one-dark"`, `"k9s-one-light"`, `"k9s-kanagawa"`. See `docs/skins.md`.
 - `overrides` (map): Per-key color overrides (see Skins documentation)
 
 ### hotkeys.toml
@@ -181,7 +181,7 @@ log_follow_default = true
 build_save_logs = true
 
 [theme]
-name = "dark"
+name = "k9s-gruvbox-dark"
 ```
 
 ```toml

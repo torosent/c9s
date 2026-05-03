@@ -70,7 +70,7 @@ func Default() Config {
 			BuildAutoclose:   true,
 		},
 		Theme: Theme{
-			Name:      "dark",
+			Name:      "k9s-gruvbox-dark",
 			Overrides: make(map[string]string),
 		},
 		Hotkeys: make(map[string]string),

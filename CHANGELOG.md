@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Default theme is now `k9s-gruvbox-dark`. Previously new installations
+  rendered with the built-in `dark` palette; the gruvbox-dark skin
+  ships bundled and is more pleasant out of the box. Existing users
+  whose `~/.config/c9s/config.toml` pins `theme.name` are unaffected;
+  to opt back in, delete the file or set `name = "dark"`.
+
 ## [0.1.1] - 2026-05-03
 
 This is a follow-up to v0.1.0 addressing the v0.1.0 code review. It
