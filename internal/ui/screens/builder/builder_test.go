@@ -32,7 +32,7 @@ func TestNew(t *testing.T) {
 func TestStatusMsgUpdates(t *testing.T) {
 	m := New(cli.NewFake(), clock.NewFake(time.Now()), theme.DefaultDark())
 	s, _ := m.Update(statusMsg{State: "running", CPUs: 2, MemoryBytes: 1 << 30, UptimeSec: 3600})
-	m = s.(Model)
+	m = s.(*Model)
 	view := m.View(80, 24)
 	if !strings.Contains(view, "running") {
 		t.Errorf("view should include running state: %q", view)

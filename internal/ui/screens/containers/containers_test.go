@@ -457,8 +457,8 @@ func TestContainersHotkeysReturnsPopulatedMap(t *testing.T) {
 }
 
 // Helper: type assertion for Screen to Model
-func assertModel(s screens.Screen) Model {
-	if m, ok := s.(Model); ok {
+func assertModel(s screens.Screen) *Model {
+	if m, ok := s.(*Model); ok {
 		return m
 	}
 	panic("expected Model type")

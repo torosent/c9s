@@ -39,7 +39,7 @@ type Model struct {
 }
 
 // New creates a new Networks screen.
-func New(client cli.Client, clk clock.Clock, p theme.Palette) Model {
+func New(client cli.Client, clk clock.Clock, p theme.Palette) *Model {
 	km := keymap.Default()
 	km.Add("inspect", keymap.Binding{
 		Keys: []string{"d"}, Help: "Inspect", Description: "Inspect network",
@@ -61,7 +61,7 @@ func New(client cli.Client, clk clock.Clock, p theme.Palette) Model {
 	)
 	tbl.SetStyles(skinx.TableStyles(p))
 
-	return Model{
+	return &Model{
 		client:  client,
 		clk:     clk,
 		palette: p,
@@ -72,7 +72,7 @@ func New(client cli.Client, clk clock.Clock, p theme.Palette) Model {
 }
 
 // Init implements screens.Screen.
-func (m Model) Init() tea.Cmd {
+func (m *Model) Init() tea.Cmd {
 	return tea.Batch(
 		state.MakeRefreshedCmd[cli.Network](
 			context.Background(),
@@ -86,7 +86,7 @@ func (m Model) Init() tea.Cmd {
 }
 
 // Update implements screens.Screen.
-func (m Model) Update(msg tea.Msg) (screens.Screen, tea.Cmd) {
+func (m *Model) Update(msg tea.Msg) (screens.Screen, tea.Cmd) {
 	var cmds []tea.Cmd
 
 	switch msg := msg.(type) {
@@ -186,7 +186,7 @@ func (m Model) Update(msg tea.Msg) (screens.Screen, tea.Cmd) {
 }
 
 // View implements screens.Screen.
-func (m Model) View(width, height int) string {
+func (m *Model) View(width, height int) string {
 	body := m.tbl.View()
 	if m.filterMode {
 		body = m.tbl.View() + "\n" + fmt.Sprintf("Filter: %s_", m.filter)
@@ -199,13 +199,13 @@ func (m Model) View(width, height int) string {
 }
 
 // Title implements screens.Screen.
-func (m Model) Title() string { return "Networks" }
+func (m *Model) Title() string { return "Networks" }
 
 // Hotkeys implements screens.Screen.
-func (m Model) Hotkeys() *keymap.Map { return m.keymap }
+func (m *Model) Hotkeys() *keymap.Map { return m.keymap }
 
 // Summary implements screens.Screen.
-func (m Model) Summary() string {
+func (m *Model) Summary() string {
 	total := len(m.networks)
 	marked := len(m.marks)
 	if marked > 0 {
@@ -349,7 +349,7 @@ func (m *Model) performDelete() tea.Cmd {
 	return tea.Batch(cmds...)
 }
 
-func (m Model) handleFilterKey(msg tea.KeyMsg) (screens.Screen, tea.Cmd) {
+func (m *Model) handleFilterKey(msg tea.KeyMsg) (screens.Screen, tea.Cmd) {
 	switch msg.Type {
 	case tea.KeyEnter:
 		m.filterMode = false
@@ -375,7 +375,7 @@ func (m Model) handleFilterKey(msg tea.KeyMsg) (screens.Screen, tea.Cmd) {
 }
 
 // SortableColumns implements screens.Sortable.
-func (m Model) SortableColumns() []modals.SortColumn {
+func (m *Model) SortableColumns() []modals.SortColumn {
 	return []modals.SortColumn{
 		{Key: "name", Label: "Name"},
 		{Key: "driver", Label: "Driver"},

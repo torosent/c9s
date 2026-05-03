@@ -21,14 +21,14 @@ func sample() []cli.RegistryEntry {
 	}
 }
 
-func feed(t *testing.T, m Model, es []cli.RegistryEntry) Model {
+func feed(t *testing.T, m *Model, es []cli.RegistryEntry) *Model {
 	t.Helper()
 	snap := state.Snapshot[cli.RegistryEntry]{Items: es, FetchedAt: time.Now()}
 	s, _ := m.Update(state.RefreshedMsg[cli.RegistryEntry]{
 		Resource: cli.ResourceRegistry,
 		Snapshot: snap,
 	})
-	return s.(Model)
+	return s.(*Model)
 }
 
 func TestNew(t *testing.T) {
@@ -138,13 +138,13 @@ func TestFilter(t *testing.T) {
 	m := New(cli.NewFake(), clock.NewFake(time.Now()), theme.DefaultDark())
 	m = feed(t, m, sample())
 	s, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'/'}})
-	m = s.(Model)
+	m = s.(*Model)
 	for _, r := range "docker" {
 		s, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{r}})
-		m = s.(Model)
+		m = s.(*Model)
 	}
 	s, _ = m.Update(tea.KeyMsg{Type: tea.KeyEnter})
-	m = s.(Model)
+	m = s.(*Model)
 	v := m.View(120, 30)
 	if !strings.Contains(v, "docker.io") {
 		t.Errorf("expected docker.io in filtered view: %q", v)

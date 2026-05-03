@@ -21,14 +21,14 @@ func sample() []cli.Network {
 	}
 }
 
-func feed(t *testing.T, m Model, ns []cli.Network) Model {
+func feed(t *testing.T, m *Model, ns []cli.Network) *Model {
 	t.Helper()
 	snap := state.Snapshot[cli.Network]{Items: ns, FetchedAt: time.Now()}
 	s, _ := m.Update(state.RefreshedMsg[cli.Network]{
 		Resource: cli.ResourceNetworks,
 		Snapshot: snap,
 	})
-	return s.(Model)
+	return s.(*Model)
 }
 
 func TestNew(t *testing.T) {
@@ -57,14 +57,14 @@ func TestSpaceMarkAndStar(t *testing.T) {
 	m := New(cli.NewFake(), clock.NewFake(time.Now()), theme.DefaultDark())
 	m = feed(t, m, sample())
 	s, _ := m.Update(tea.KeyMsg{Type: tea.KeySpace})
-	m = s.(Model)
+	m = s.(*Model)
 	if !strings.Contains(m.Summary(), "1 selected") {
 		t.Errorf("got %q", m.Summary())
 	}
 	s, _ = m.Update(tea.KeyMsg{Type: tea.KeyEsc})
-	m = s.(Model)
+	m = s.(*Model)
 	s, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'*'}})
-	m = s.(Model)
+	m = s.(*Model)
 	if !strings.Contains(m.Summary(), "2 selected") {
 		t.Errorf("after *: %q", m.Summary())
 	}
@@ -120,13 +120,13 @@ func TestFilter(t *testing.T) {
 	m := New(cli.NewFake(), clock.NewFake(time.Now()), theme.DefaultDark())
 	m = feed(t, m, sample())
 	s, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'/'}})
-	m = s.(Model)
+	m = s.(*Model)
 	for _, r := range "iso" {
 		s, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{r}})
-		m = s.(Model)
+		m = s.(*Model)
 	}
 	s, _ = m.Update(tea.KeyMsg{Type: tea.KeyEnter})
-	m = s.(Model)
+	m = s.(*Model)
 	v := m.View(120, 30)
 	if !strings.Contains(v, "isolated") {
 		t.Errorf("expected isolated in filtered view: %q", v)
@@ -199,7 +199,7 @@ func TestMouseLeftClickSelectsRow(t *testing.T) {
 		Y:      4,
 		Button: tea.MouseButtonLeft,
 	})
-	m2, ok := s.(Model)
+	m2, ok := s.(*Model)
 	if !ok {
 		t.Fatalf("expected Model, got %T", s)
 	}

@@ -31,7 +31,7 @@ type Model struct {
 }
 
 // New creates a new jobs screen.
-func New(mgr *jobs.Manager, clk clock.Clock, p theme.Palette) Model {
+func New(mgr *jobs.Manager, clk clock.Clock, p theme.Palette) *Model {
 	// Build keymap with screen-specific bindings
 	km := keymap.Default()
 	km.Add("reattach", keymap.Binding{
@@ -66,7 +66,7 @@ func New(mgr *jobs.Manager, clk clock.Clock, p theme.Palette) Model {
 	)
 	t.SetStyles(skinx.TableStyles(p))
 
-	return Model{
+	return &Model{
 		manager: mgr,
 		clock:   clk,
 		palette: p,
@@ -76,7 +76,7 @@ func New(mgr *jobs.Manager, clk clock.Clock, p theme.Palette) Model {
 }
 
 // Init implements screens.Screen.
-func (m Model) Init() tea.Cmd {
+func (m *Model) Init() tea.Cmd {
 	return tea.Batch(
 		m.refreshJobs(),
 		m.tickRefresh(),
@@ -98,7 +98,7 @@ func (m *Model) tickRefresh() tea.Cmd {
 }
 
 // Update implements screens.Screen.
-func (m Model) Update(msg tea.Msg) (screens.Screen, tea.Cmd) {
+func (m *Model) Update(msg tea.Msg) (screens.Screen, tea.Cmd) {
 	var cmds []tea.Cmd
 
 	switch msg := msg.(type) {
@@ -204,7 +204,7 @@ func (m *Model) clearDone() tea.Cmd {
 }
 
 // View implements screens.Screen.
-func (m Model) View(width, height int) string {
+func (m *Model) View(width, height int) string {
 	if width > 0 && height > 0 {
 		m.table.SetWidth(width - 4)
 		m.table.SetHeight(height - 4)
@@ -213,17 +213,17 @@ func (m Model) View(width, height int) string {
 }
 
 // Title implements screens.Screen.
-func (m Model) Title() string {
+func (m *Model) Title() string {
 	return "Jobs"
 }
 
 // Hotkeys implements screens.Screen.
-func (m Model) Hotkeys() *keymap.Map {
+func (m *Model) Hotkeys() *keymap.Map {
 	return m.keymap
 }
 
 // Summary implements screens.Screen.
-func (m Model) Summary() string {
+func (m *Model) Summary() string {
 	running := 0
 	done := 0
 	for _, job := range m.jobsList {
@@ -243,7 +243,7 @@ type OpenModalMsg struct {
 }
 
 // SortableColumns implements screens.Sortable.
-func (m Model) SortableColumns() []modals.SortColumn {
+func (m *Model) SortableColumns() []modals.SortColumn {
 	return []modals.SortColumn{
 		{Key: "id", Label: "ID"},
 		{Key: "kind", Label: "Kind"},

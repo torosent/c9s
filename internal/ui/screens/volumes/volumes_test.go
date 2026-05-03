@@ -21,16 +21,16 @@ func sampleVolumes() []cli.Volume {
 	}
 }
 
-func assertModel(t *testing.T, s screens.Screen) Model {
+func assertModel(t *testing.T, s screens.Screen) *Model {
 	t.Helper()
-	m, ok := s.(Model)
+	m, ok := s.(*Model)
 	if !ok {
 		t.Fatalf("expected Model, got %T", s)
 	}
 	return m
 }
 
-func feedSnap(t *testing.T, m Model, vs []cli.Volume) Model {
+func feedSnap(t *testing.T, m *Model, vs []cli.Volume) *Model {
 	t.Helper()
 	snap := state.Snapshot[cli.Volume]{Items: vs, FetchedAt: time.Now()}
 	s, _ := m.Update(state.RefreshedMsg[cli.Volume]{

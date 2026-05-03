@@ -31,7 +31,7 @@ type Model struct {
 }
 
 // New creates a new Builder screen.
-func New(client cli.Client, clk clock.Clock, p theme.Palette) Model {
+func New(client cli.Client, clk clock.Clock, p theme.Palette) *Model {
 	km := keymap.Default()
 	km.Add("start", keymap.Binding{
 		Keys: []string{"S", "shift+s"}, Help: "Start", Description: "Start the builder",
@@ -42,7 +42,7 @@ func New(client cli.Client, clk clock.Clock, p theme.Palette) Model {
 	km.Add("delete", keymap.Binding{
 		Keys: []string{"D", "shift+d"}, Help: "Delete", Description: "Delete the builder",
 	})
-	return Model{
+	return &Model{
 		client:  client,
 		clk:     clk,
 		palette: p,
@@ -51,7 +51,7 @@ func New(client cli.Client, clk clock.Clock, p theme.Palette) Model {
 }
 
 // Init implements screens.Screen.
-func (m Model) Init() tea.Cmd {
+func (m *Model) Init() tea.Cmd {
 	return tea.Batch(
 		m.refreshCmd(),
 		state.TickCmd(2*time.Second, m.clk, cli.ResourceBuilder),
@@ -59,7 +59,7 @@ func (m Model) Init() tea.Cmd {
 }
 
 // Update implements screens.Screen.
-func (m Model) Update(msg tea.Msg) (screens.Screen, tea.Cmd) {
+func (m *Model) Update(msg tea.Msg) (screens.Screen, tea.Cmd) {
 	var cmds []tea.Cmd
 
 	switch msg := msg.(type) {
@@ -100,11 +100,11 @@ func (m Model) Update(msg tea.Msg) (screens.Screen, tea.Cmd) {
 }
 
 // View implements screens.Screen.
-func (m Model) View(width, height int) string {
+func (m *Model) View(width, height int) string {
 	return m.renderCard(width)
 }
 
-func (m Model) renderCard(width int) string {
+func (m *Model) renderCard(width int) string {
 	state := m.status.State
 	if state == "" {
 		state = "unknown"
@@ -176,13 +176,13 @@ func (m Model) renderCard(width int) string {
 // renderCard ends here.
 
 // Title implements screens.Screen.
-func (m Model) Title() string { return "Builder" }
+func (m *Model) Title() string { return "Builder" }
 
 // Hotkeys implements screens.Screen.
-func (m Model) Hotkeys() *keymap.Map { return m.keymap }
+func (m *Model) Hotkeys() *keymap.Map { return m.keymap }
 
 // Summary implements screens.Screen.
-func (m Model) Summary() string {
+func (m *Model) Summary() string {
 	state := m.status.State
 	if state == "" {
 		state = "unknown"
@@ -190,7 +190,7 @@ func (m Model) Summary() string {
 	return fmt.Sprintf("builder %s", state)
 }
 
-func (m Model) refreshCmd() tea.Cmd {
+func (m *Model) refreshCmd() tea.Cmd {
 	return func() tea.Msg {
 		st, err := m.client.BuilderStatus(context.Background())
 		if err != nil {
@@ -200,7 +200,7 @@ func (m Model) refreshCmd() tea.Cmd {
 	}
 }
 
-func (m Model) startBuilder() tea.Cmd {
+func (m *Model) startBuilder() tea.Cmd {
 	return func() tea.Msg {
 		err := m.client.BuilderStart(context.Background())
 		if err != nil {
@@ -210,7 +210,7 @@ func (m Model) startBuilder() tea.Cmd {
 	}
 }
 
-func (m Model) stopBuilder() tea.Cmd {
+func (m *Model) stopBuilder() tea.Cmd {
 	return func() tea.Msg {
 		err := m.client.BuilderStop(context.Background())
 		if err != nil {
@@ -220,7 +220,7 @@ func (m Model) stopBuilder() tea.Cmd {
 	}
 }
 
-func (m Model) requestDelete() tea.Cmd {
+func (m *Model) requestDelete() tea.Cmd {
 	return func() tea.Msg {
 		return screens.OpenModalMsg{Modal: modals.NewConfirm(
 			"Delete builder",
@@ -232,7 +232,7 @@ func (m Model) requestDelete() tea.Cmd {
 	}
 }
 
-func (m Model) deleteBuilder() tea.Cmd {
+func (m *Model) deleteBuilder() tea.Cmd {
 	return func() tea.Msg {
 		err := m.client.BuilderDelete(context.Background())
 		if err != nil {

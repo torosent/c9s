@@ -23,19 +23,19 @@ type realClock struct{}
 
 func (realClock) Now() time.Time { return time.Now() }
 
+// Tick returns a single-shot channel that fires once after d. Each call
+// allocates a fresh time.After timer, which the runtime garbage-collects
+// after firing.
+//
+// Note: callers re-arm by invoking Tick again (e.g. inside a tea.Cmd that
+// returns a TickMsg). This is fine because every Tick is one-shot and
+// the previous goroutine/timer has already exited; there is no
+// accumulation. Earlier versions of this method spawned a long-lived
+// goroutine + time.Ticker per call, which leaked one goroutine + ticker
+// per refresh — a 2-second cadence over an hour produced ~1800 leaks
+// per screen. See PR review C2 of v0.1.0 for the symptom.
 func (realClock) Tick(d time.Duration) <-chan time.Time {
-	out := make(chan time.Time, 1)
-	go func() {
-		t := time.NewTicker(d)
-		defer t.Stop()
-		for tick := range t.C {
-			select {
-			case out <- tick:
-			default: // drop if consumer is behind
-			}
-		}
-	}()
-	return out
+	return time.After(d)
 }
 
 // Fake is a manually-driven clock for tests.

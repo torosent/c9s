@@ -33,16 +33,16 @@ func sampleImages() []cli.Image {
 	}
 }
 
-func assertModel(t *testing.T, s screens.Screen) Model {
+func assertModel(t *testing.T, s screens.Screen) *Model {
 	t.Helper()
-	m, ok := s.(Model)
+	m, ok := s.(*Model)
 	if !ok {
 		t.Fatalf("expected Model, got %T", s)
 	}
 	return m
 }
 
-func feedSnapshot(t *testing.T, m Model, imgs []cli.Image) Model {
+func feedSnapshot(t *testing.T, m *Model, imgs []cli.Image) *Model {
 	t.Helper()
 	snap := state.Snapshot[cli.Image]{Items: imgs, FetchedAt: time.Now()}
 	s, _ := m.Update(state.RefreshedMsg[cli.Image]{
