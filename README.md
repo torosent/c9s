@@ -71,8 +71,13 @@ make ci              # format check + lint + race tests + coverage gate
 
 ## Documentation
 
-- [Design spec](docs/superpowers/specs/2026-05-02-c9s-design.md)
+- [Documentation site](https://torosent.github.io/c9s)
 - [Architecture overview](docs/architecture.md)
+- [Quick start](docs/quick-start.md)
+- [Configuration](docs/configuration.md)
+- [Skins](docs/skins.md)
+- [Hotkeys reference](docs/hotkeys.md)
+- [k9s migration](docs/k9s-migration.md)
 - [Contributing guide](docs/contributing.md)
 
 ## Versioning

@@ -34,6 +34,14 @@ jobs:
             exit 1
           fi
 
+      - name: go mod tidy is a no-op
+        run: |
+          go mod tidy
+          if ! git diff --exit-code go.mod go.sum; then
+            echo "go.mod/go.sum changed after 'go mod tidy' — run it locally and commit."
+            exit 1
+          fi
+
       - name: go vet
         run: go vet ./...
 
@@ -52,3 +60,16 @@ jobs:
           total=$(go tool cover -func=coverage.out | awk '/total:/ {print $3}' | tr -d '%')
           echo "Total coverage: ${total}%"
           awk -v t="$total" 'BEGIN { if (t+0 < 70.0) { print "FAIL: coverage " t "% < 70%"; exit 1 } }'
+
+  docs:
+    name: docs build (strict)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+      - name: Install mkdocs-material
+        run: pip install mkdocs-material
+      - name: mkdocs build --strict
+        run: mkdocs build --strict

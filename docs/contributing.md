@@ -16,8 +16,8 @@ Thank you for your interest in contributing to c9s! This guide will help you get
 1. **Clone the repository**
 
    ```bash
-   git clone https://github.com/torosent/container-tui.git
-   cd container-tui
+   git clone https://github.com/torosent/c9s.git
+   cd c9s
    ```
 
 2. **Install development tools**
@@ -68,7 +68,7 @@ go run ./cmd/c9s
 ## Project Structure
 
 ```
-container-tui/
+c9s/
 ├── cmd/
 │   ├── c9s/              # Main entrypoint
 │   └── gen-hotkeys/      # Hotkeys doc generator
@@ -337,7 +337,7 @@ Run `mkdocs serve` for a live local preview.
 
 ## Questions?
 
-- Open a [GitHub Discussion](https://github.com/torosent/container-tui/discussions)
-- File an [Issue](https://github.com/torosent/container-tui/issues)
+- Open a [GitHub Discussion](https://github.com/torosent/c9s/discussions)
+- File an [Issue](https://github.com/torosent/c9s/issues)
 
 Thank you for contributing to c9s! 🎉

@@ -24,6 +24,9 @@ go.work.sum
 *.log
 crashes/
 
+# mkdocs build artifact
+site/
+
 # Local data dirs (in case run from repo root)
 data/
 .local/

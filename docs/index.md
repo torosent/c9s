@@ -6,4 +6,4 @@ This documentation site is generated from the `docs/` directory. See:
 
 - [Install](install.md)
 - [Architecture](architecture.md)
-- [Design spec](superpowers/specs/2026-05-02-c9s-design.md)
+- [Quick start](quick-start.md)

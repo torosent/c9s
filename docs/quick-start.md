@@ -5,15 +5,15 @@
 ### From Source
 
 ```bash
-git clone https://github.com/torosent/container-tui.git
-cd container-tui
+git clone https://github.com/torosent/c9s.git
+cd c9s
 make build
 sudo mv bin/c9s /usr/local/bin/
 ```
 
 ### From Release
 
-Download the latest release from [GitHub Releases](https://github.com/torosent/container-tui/releases).
+Download the latest release from [GitHub Releases](https://github.com/torosent/c9s/releases).
 
 ## Running c9s
 

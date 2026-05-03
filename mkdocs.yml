@@ -1,8 +1,8 @@
 site_name: c9s - Apple Containers TUI
 site_description: Declarative container management with a k9s-inspired TUI
 site_url: https://torosent.github.io/c9s
-repo_url: https://github.com/torosent/container-tui
-repo_name: torosent/container-tui
+repo_url: https://github.com/torosent/c9s
+repo_name: torosent/c9s
 
 theme:
   name: material
@@ -27,7 +27,9 @@ markdown_extensions:
 
 nav:
   - Home: index.md
+  - Install: install.md
   - Quick Start: quick-start.md
+  - Architecture: architecture.md
   - Screens:
       - Overview: screens/index.md
       - Containers: screens/containers.md
@@ -37,10 +39,18 @@ nav:
       - Builder: screens/builder.md
       - Registry: screens/registry.md
       - System: screens/system.md
+      - Build: screens/build.md
+      - Run: screens/run.md
+      - Errors: screens/errors.md
+      - Pinned: screens/pinned.md
+      - Pulses: screens/pulses.md
+      - Xray: screens/xray.md
   - Configuration: configuration.md
-  - Skins: skins.md
+  - Keybinds: keybinds.md
   - Hotkeys: hotkeys.md
-  - k9s Migration: k9s-migration.md
+  - Skins: skins.md
   - Streaming: streaming.md
+  - k9s Migration: k9s-migration.md
+  - Demos: demos-rendering.md
   - FAQ: faq.md
   - Contributing: contributing.md

@@ -11,16 +11,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 **This is the v0.1.0 cut — c9s's first proper release.** It collects:
 - All the features shipped across v0.0.1 through v0.0.7 (foundations, containers screen, streaming/logs/jobs, all resource screens, configuration system, k9s parity, demos, docs site).
-- goreleaser-driven multi-platform binaries (darwin + linux × amd64 + arm64).
-- Homebrew tap at torosent/homebrew-c9s.
-- GitHub Actions release workflow that publishes binaries + updates the brew tap.
+- A goreleaser-driven macOS Apple Silicon (darwin/arm64) binary.
+- Homebrew tap at torosent/homebrew-c9s, distributed as a Homebrew Cask.
+- GitHub Actions release workflow that publishes the binary + updates the cask.
 - macOS codesigning + notarization hooks (optional; activate by setting required secrets).
 
 ### Added
 
 **Release infrastructure (v0.1.0)**
-- goreleaser configuration for multi-platform builds (darwin/linux × amd64/arm64)
-- Homebrew tap at `torosent/homebrew-c9s` with auto-managed formula
+- goreleaser configuration for darwin/arm64 build
+- Homebrew tap at `torosent/homebrew-c9s` with auto-managed cask
 - GitHub Actions release workflow triggered on version tags
 - Optional macOS codesigning and notarization support
 - Direct download archives with checksums
@@ -73,12 +73,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Fixed `gen-hotkeys` tool to use `titleCase` instead of deprecated `strings.Title`
-
-## [Unreleased]
-
-### Added
-- Sortable + mouse support extended to all tabular screens (images, volumes, networks, registry, errors, pinned).
-- Breadcrumb trail wired into root model (push on screen/modal switch, pop on close; supports navigation history).
 
 ## [0.0.6] - 2025-05-02
 
@@ -204,4 +198,3 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Clock abstraction (`internal/clock`) and snapshot cache (`internal/state`).
 - Continuous integration workflow with lint, race-detector tests, and coverage gate.
 - Architecture, install, and index pages (placeholders).
-- Design spec at `docs/superpowers/specs/2026-05-02-c9s-design.md`.

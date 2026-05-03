@@ -3,7 +3,7 @@ project_name: c9s
 
 before:
   hooks:
-    - go mod tidy
+    - go mod verify
 
 builds:
   - id: c9s

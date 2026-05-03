@@ -102,8 +102,8 @@ Ensure your terminal supports mouse events. Most modern terminals (iTerm2, Alacr
 ### How do I build from source?
 
 ```bash
-git clone https://github.com/torosent/container-tui.git
-cd container-tui
+git clone https://github.com/torosent/c9s.git
+cd c9s
 make build
 ```
 
