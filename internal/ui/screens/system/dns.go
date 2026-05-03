@@ -79,7 +79,7 @@ func (m DNSModel) Init() tea.Cmd {
 
 func (m DNSModel) refreshCmd() tea.Cmd {
 	return state.MakeRefreshedCmd[cli.DNSDomain](
-		context.Background(),
+		cli.DefaultCtx(),
 		func(ctx context.Context) ([]cli.DNSDomain, error) {
 			return m.client.ListDNSDomains(ctx)
 		},
@@ -229,7 +229,7 @@ func (m *DNSModel) performCreate(name string) tea.Cmd {
 		}
 	}
 	return func() tea.Msg {
-		err := m.client.CreateDNSDomain(context.Background(), name)
+		err := m.client.CreateDNSDomain(cli.DefaultCtx(), name)
 		if err != nil {
 			return screens.StatusMsg{Toast: fmt.Sprintf("create dns %s failed: %v", name, err)}
 		}
@@ -258,7 +258,7 @@ func (m *DNSModel) performDelete() tea.Cmd {
 	}
 	name := d.Name
 	return func() tea.Msg {
-		err := m.client.DeleteDNSDomain(context.Background(), name)
+		err := m.client.DeleteDNSDomain(cli.DefaultCtx(), name)
 		if err != nil {
 			return screens.StatusMsg{Toast: fmt.Sprintf("delete dns %s failed: %v", name, err)}
 		}
@@ -273,7 +273,7 @@ func (m *DNSModel) requestSetDefault() tea.Cmd {
 	}
 	name := d.Name
 	return func() tea.Msg {
-		err := m.client.SetDefaultDNSDomain(context.Background(), name)
+		err := m.client.SetDefaultDNSDomain(cli.DefaultCtx(), name)
 		if err != nil {
 			return screens.StatusMsg{Toast: fmt.Sprintf("default dns %s failed: %v", name, err)}
 		}

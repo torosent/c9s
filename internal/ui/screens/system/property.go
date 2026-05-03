@@ -76,7 +76,7 @@ func (m PropertyModel) Init() tea.Cmd {
 
 func (m PropertyModel) refreshCmd() tea.Cmd {
 	return state.MakeRefreshedCmd[cli.SystemProperty](
-		context.Background(),
+		cli.DefaultCtx(),
 		func(ctx context.Context) ([]cli.SystemProperty, error) {
 			return m.client.ListSystemProperties(ctx)
 		},
@@ -224,7 +224,7 @@ func (m *PropertyModel) requestEdit() tea.Cmd {
 
 func (m *PropertyModel) performSet(key, value string) tea.Cmd {
 	return func() tea.Msg {
-		err := m.client.SetSystemProperty(context.Background(), key, value)
+		err := m.client.SetSystemProperty(cli.DefaultCtx(), key, value)
 		if err != nil {
 			return screens.StatusMsg{Toast: fmt.Sprintf("set %s failed: %v", key, err)}
 		}
@@ -260,7 +260,7 @@ func (m *PropertyModel) performReset() tea.Cmd {
 	}
 	key := p.Key
 	return func() tea.Msg {
-		err := m.client.ResetSystemProperty(context.Background(), key)
+		err := m.client.ResetSystemProperty(cli.DefaultCtx(), key)
 		if err != nil {
 			return screens.StatusMsg{Toast: fmt.Sprintf("reset %s failed: %v", key, err)}
 		}

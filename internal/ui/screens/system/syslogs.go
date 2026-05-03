@@ -64,7 +64,7 @@ func (m *LogsModel) start() tea.Cmd {
 	if m.started {
 		return nil
 	}
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(cli.DefaultCtx())
 	stream, err := m.client.StreamSystemLogs(ctx, true)
 	if err != nil {
 		cancel()

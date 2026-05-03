@@ -1,7 +1,6 @@
 package system
 
 import (
-	"context"
 	"fmt"
 	"strings"
 
@@ -51,7 +50,7 @@ func (m KernelModel) Init() tea.Cmd { return m.refreshCmd() }
 func (m KernelModel) refreshCmd() tea.Cmd {
 	c := m.client
 	return func() tea.Msg {
-		props, err := c.ListSystemProperties(context.Background())
+		props, err := c.ListSystemProperties(cli.DefaultCtx())
 		if err != nil {
 			return screens.StatusMsg{Toast: fmt.Sprintf("kernel read failed: %v", err)}
 		}

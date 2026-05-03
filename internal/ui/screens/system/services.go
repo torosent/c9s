@@ -70,7 +70,7 @@ func NewServices(client cli.Client, clk clock.Clock, p theme.Palette) ServicesMo
 func (m ServicesModel) Init() tea.Cmd {
 	return tea.Batch(
 		state.MakeRefreshedCmd[cli.SystemService](
-			context.Background(),
+			cli.DefaultCtx(),
 			func(ctx context.Context) ([]cli.SystemService, error) {
 				return m.client.ListSystemServices(ctx)
 			},
@@ -109,7 +109,7 @@ func (m ServicesModel) Update(msg tea.Msg) (screens.Screen, tea.Cmd) {
 		}
 		cmds = append(cmds,
 			state.MakeRefreshedCmd[cli.SystemService](
-				context.Background(),
+				cli.DefaultCtx(),
 				func(ctx context.Context) ([]cli.SystemService, error) {
 					return m.client.ListSystemServices(ctx)
 				},
@@ -127,7 +127,7 @@ func (m ServicesModel) Update(msg tea.Msg) (screens.Screen, tea.Cmd) {
 		}
 		if m.keymap.Matches("refresh", msg) {
 			return m, state.MakeRefreshedCmd[cli.SystemService](
-				context.Background(),
+				cli.DefaultCtx(),
 				func(ctx context.Context) ([]cli.SystemService, error) {
 					return m.client.ListSystemServices(ctx)
 				},
@@ -210,7 +210,7 @@ func (m *ServicesModel) visible() []cli.SystemService {
 
 func (m *ServicesModel) startAll() tea.Cmd {
 	return func() tea.Msg {
-		err := m.client.SystemStartAll(context.Background())
+		err := m.client.SystemStartAll(cli.DefaultCtx())
 		if err != nil {
 			return screens.StatusMsg{Toast: fmt.Sprintf("system start failed: %v", err)}
 		}
@@ -220,7 +220,7 @@ func (m *ServicesModel) startAll() tea.Cmd {
 
 func (m *ServicesModel) stopAll() tea.Cmd {
 	return func() tea.Msg {
-		err := m.client.SystemStopAll(context.Background())
+		err := m.client.SystemStopAll(cli.DefaultCtx())
 		if err != nil {
 			return screens.StatusMsg{Toast: fmt.Sprintf("system stop failed: %v", err)}
 		}

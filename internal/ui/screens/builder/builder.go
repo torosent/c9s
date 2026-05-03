@@ -3,7 +3,6 @@
 package builder
 
 import (
-	"context"
 	"fmt"
 	"strings"
 	"time"
@@ -195,7 +194,7 @@ func (m *Model) Summary() string {
 
 func (m *Model) refreshCmd() tea.Cmd {
 	return func() tea.Msg {
-		st, err := m.client.BuilderStatus(context.Background())
+		st, err := m.client.BuilderStatus(cli.DefaultCtx())
 		if err != nil {
 			return screens.StatusMsg{Toast: fmt.Sprintf("builder status failed: %v", err)}
 		}
@@ -205,7 +204,7 @@ func (m *Model) refreshCmd() tea.Cmd {
 
 func (m *Model) startBuilder() tea.Cmd {
 	return func() tea.Msg {
-		err := m.client.BuilderStart(context.Background())
+		err := m.client.BuilderStart(cli.DefaultCtx())
 		if err != nil {
 			return screens.StatusMsg{Toast: fmt.Sprintf("builder start failed: %v", err)}
 		}
@@ -215,7 +214,7 @@ func (m *Model) startBuilder() tea.Cmd {
 
 func (m *Model) stopBuilder() tea.Cmd {
 	return func() tea.Msg {
-		err := m.client.BuilderStop(context.Background())
+		err := m.client.BuilderStop(cli.DefaultCtx())
 		if err != nil {
 			return screens.StatusMsg{Toast: fmt.Sprintf("builder stop failed: %v", err)}
 		}
@@ -237,7 +236,7 @@ func (m *Model) requestDelete() tea.Cmd {
 
 func (m *Model) deleteBuilder() tea.Cmd {
 	return func() tea.Msg {
-		err := m.client.BuilderDelete(context.Background())
+		err := m.client.BuilderDelete(cli.DefaultCtx())
 		if err != nil {
 			return screens.StatusMsg{Toast: fmt.Sprintf("builder delete failed: %v", err)}
 		}

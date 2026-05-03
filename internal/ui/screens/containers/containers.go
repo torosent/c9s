@@ -124,7 +124,7 @@ func New(client cli.Client, clk clock.Clock, p theme.Palette) *Model {
 func (m *Model) Init() tea.Cmd {
 	return tea.Batch(
 		state.MakeRefreshedCmd[cli.Container](
-			context.Background(),
+			cli.DefaultCtx(),
 			func(ctx context.Context) ([]cli.Container, error) {
 				return m.client.ListContainers(ctx, true)
 			},
@@ -132,7 +132,7 @@ func (m *Model) Init() tea.Cmd {
 		),
 		state.TickCmd(2*time.Second, m.clk, cli.ResourceContainers),
 		func() tea.Msg {
-			caps, _ := m.client.Capabilities(context.Background())
+			caps, _ := m.client.Capabilities(cli.DefaultCtx())
 			return capabilitiesMsg(caps)
 		},
 	)
@@ -180,7 +180,7 @@ func (m *Model) Update(msg tea.Msg) (screens.Screen, tea.Cmd) {
 		// Trigger another refresh and re-arm the tick
 		cmds = append(cmds,
 			state.MakeRefreshedCmd[cli.Container](
-				context.Background(),
+				cli.DefaultCtx(),
 				func(ctx context.Context) ([]cli.Container, error) {
 					return m.client.ListContainers(ctx, true)
 				},
@@ -231,7 +231,7 @@ func (m *Model) Update(msg tea.Msg) (screens.Screen, tea.Cmd) {
 
 		if m.keymap.Matches("refresh", msg) {
 			cmd := state.MakeRefreshedCmd[cli.Container](
-				context.Background(),
+				cli.DefaultCtx(),
 				func(ctx context.Context) ([]cli.Container, error) {
 					return m.client.ListContainers(ctx, true)
 				},
@@ -528,7 +528,7 @@ func (m *Model) inspectFocused() tea.Cmd {
 	}
 
 	return func() tea.Msg {
-		ctx := context.Background()
+		ctx := cli.DefaultCtx()
 		jsonBytes, err := m.client.InspectContainer(ctx, c.ID)
 		if err != nil {
 			return screens.StatusMsg{Toast: fmt.Sprintf("inspect failed: %v", err)}
@@ -550,7 +550,7 @@ func (m *Model) stopSelected() tea.Cmd {
 	for _, id := range ids {
 		id := id // capture
 		cmds = append(cmds, func() tea.Msg {
-			ctx := context.Background()
+			ctx := cli.DefaultCtx()
 			err := m.client.StopContainer(ctx, id)
 			if err != nil {
 				return screens.StatusMsg{Toast: fmt.Sprintf("stop %s failed: %v", id, err)}
@@ -572,7 +572,7 @@ func (m *Model) killSelected() tea.Cmd {
 	for _, id := range ids {
 		id := id
 		cmds = append(cmds, func() tea.Msg {
-			ctx := context.Background()
+			ctx := cli.DefaultCtx()
 			err := m.client.KillContainer(ctx, id)
 			if err != nil {
 				return screens.StatusMsg{Toast: fmt.Sprintf("kill %s failed: %v", id, err)}
@@ -594,7 +594,7 @@ func (m *Model) restartSelected() tea.Cmd {
 	for _, id := range ids {
 		id := id
 		cmds = append(cmds, func() tea.Msg {
-			ctx := context.Background()
+			ctx := cli.DefaultCtx()
 			err := m.client.RestartContainer(ctx, id)
 			if err != nil {
 				return screens.StatusMsg{Toast: fmt.Sprintf("restart %s failed: %v", id, err)}
@@ -641,7 +641,7 @@ func (m *Model) pauseSelected() tea.Cmd {
 	for _, id := range ids {
 		id := id
 		cmds = append(cmds, func() tea.Msg {
-			ctx := context.Background()
+			ctx := cli.DefaultCtx()
 			err := m.client.PauseContainer(ctx, id)
 			if err != nil {
 				return screens.StatusMsg{Toast: fmt.Sprintf("pause %s failed: %v", id, err)}
@@ -690,7 +690,7 @@ func (m *Model) openLogs() tea.Cmd {
 
 	client := m.client
 	return func() tea.Msg {
-		ctx := context.Background()
+		ctx := cli.DefaultCtx()
 		var sources []modals.LogSource
 		for i, id := range ids {
 			stream, err := client.StreamLogs(ctx, id, true)
@@ -743,7 +743,7 @@ func (m *Model) performDelete() tea.Cmd {
 	for _, id := range ids {
 		id := id
 		cmds = append(cmds, func() tea.Msg {
-			ctx := context.Background()
+			ctx := cli.DefaultCtx()
 			if err := client.DeleteContainer(ctx, id); err != nil {
 				return screens.StatusMsg{Toast: fmt.Sprintf("delete %s failed: %v", id, err)}
 			}
@@ -752,7 +752,7 @@ func (m *Model) performDelete() tea.Cmd {
 	}
 	// Refresh after delete
 	cmds = append(cmds, state.MakeRefreshedCmd[cli.Container](
-		context.Background(),
+		cli.DefaultCtx(),
 		func(ctx context.Context) ([]cli.Container, error) {
 			return client.ListContainers(ctx, true)
 		},

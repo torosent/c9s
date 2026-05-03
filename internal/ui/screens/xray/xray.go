@@ -2,7 +2,6 @@
 package xray
 
 import (
-	"context"
 	"fmt"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -63,7 +62,7 @@ func (m *Model) buildTree() tea.Cmd {
 		root := &widgets.Node{Label: "Resources", Kind: "root", Expanded: true}
 
 		// List containers
-		containers, err := m.client.ListContainers(context.Background(), false)
+		containers, err := m.client.ListContainers(cli.DefaultCtx(), false)
 		if err == nil {
 			for _, c := range containers {
 				cNode := &widgets.Node{

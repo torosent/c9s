@@ -82,7 +82,7 @@ func (m *Model) Init() tea.Cmd {
 
 func (m *Model) refreshCmd() tea.Cmd {
 	return state.MakeRefreshedCmd[cli.RegistryEntry](
-		context.Background(),
+		cli.DefaultCtx(),
 		func(ctx context.Context) ([]cli.RegistryEntry, error) {
 			return m.client.ListRegistries(ctx)
 		},
@@ -281,7 +281,7 @@ func (m *Model) requestLogin() tea.Cmd {
 
 func (m *Model) performLogin(req modals.LoginRequest) tea.Cmd {
 	return func() tea.Msg {
-		err := m.client.RegistryLogin(context.Background(), req.Host, req.Username, req.Password)
+		err := m.client.RegistryLogin(cli.DefaultCtx(), req.Host, req.Username, req.Password)
 		if err != nil {
 			return screens.StatusMsg{Toast: fmt.Sprintf("login %s failed: %v", req.Host, err)}
 		}
@@ -313,7 +313,7 @@ func (m *Model) performLogout() tea.Cmd {
 	}
 	host := e.Host
 	return func() tea.Msg {
-		err := m.client.RegistryLogout(context.Background(), host)
+		err := m.client.RegistryLogout(cli.DefaultCtx(), host)
 		if err != nil {
 			return screens.StatusMsg{Toast: fmt.Sprintf("logout %s failed: %v", host, err)}
 		}
@@ -328,7 +328,7 @@ func (m *Model) requestSetDefault() tea.Cmd {
 	}
 	host := e.Host
 	return func() tea.Msg {
-		err := m.client.RegistrySetDefault(context.Background(), host)
+		err := m.client.RegistrySetDefault(cli.DefaultCtx(), host)
 		if err != nil {
 			return screens.StatusMsg{Toast: fmt.Sprintf("set-default %s failed: %v", host, err)}
 		}

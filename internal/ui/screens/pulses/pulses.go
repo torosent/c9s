@@ -2,7 +2,6 @@
 package pulses
 
 import (
-	"context"
 	"fmt"
 	"time"
 
@@ -60,10 +59,10 @@ type RefreshMsg struct{}
 
 func (m *Model) refresh() tea.Cmd {
 	return func() tea.Msg {
-		containers, _ := m.client.ListContainers(context.Background(), false)
-		images, _ := m.client.ListImages(context.Background())
-		volumes, _ := m.client.ListVolumes(context.Background())
-		networks, _ := m.client.ListNetworks(context.Background())
+		containers, _ := m.client.ListContainers(cli.DefaultCtx(), false)
+		images, _ := m.client.ListImages(cli.DefaultCtx())
+		volumes, _ := m.client.ListVolumes(cli.DefaultCtx())
+		networks, _ := m.client.ListNetworks(cli.DefaultCtx())
 
 		return DataRefreshedMsg{
 			Containers: len(containers),

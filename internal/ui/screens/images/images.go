@@ -106,7 +106,7 @@ func New(client cli.Client, clk clock.Clock, p theme.Palette) *Model {
 func (m *Model) Init() tea.Cmd {
 	return tea.Batch(
 		state.MakeRefreshedCmd[cli.Image](
-			context.Background(),
+			cli.DefaultCtx(),
 			func(ctx context.Context) ([]cli.Image, error) {
 				return m.client.ListImages(ctx)
 			},
@@ -145,7 +145,7 @@ func (m *Model) Update(msg tea.Msg) (screens.Screen, tea.Cmd) {
 		}
 		cmds = append(cmds,
 			state.MakeRefreshedCmd[cli.Image](
-				context.Background(),
+				cli.DefaultCtx(),
 				func(ctx context.Context) ([]cli.Image, error) {
 					return m.client.ListImages(ctx)
 				},
@@ -200,7 +200,7 @@ func (m *Model) Update(msg tea.Msg) (screens.Screen, tea.Cmd) {
 		}
 		if m.keymap.Matches("refresh", msg) {
 			return m, state.MakeRefreshedCmd[cli.Image](
-				context.Background(),
+				cli.DefaultCtx(),
 				func(ctx context.Context) ([]cli.Image, error) {
 					return m.client.ListImages(ctx)
 				},
@@ -358,7 +358,7 @@ func (m *Model) inspectFocused() tea.Cmd {
 	id := img.ID
 	short := img.ShortID
 	return func() tea.Msg {
-		raw, err := m.client.InspectImage(context.Background(), id)
+		raw, err := m.client.InspectImage(cli.DefaultCtx(), id)
 		if err != nil {
 			return screens.StatusMsg{Toast: fmt.Sprintf("inspect %s failed: %v", short, err)}
 		}
@@ -447,7 +447,7 @@ func (m *Model) performTag(src, dst string) tea.Cmd {
 		}
 	}
 	return func() tea.Msg {
-		err := m.client.TagImage(context.Background(), src, dst)
+		err := m.client.TagImage(cli.DefaultCtx(), src, dst)
 		if err != nil {
 			return screens.StatusMsg{Toast: fmt.Sprintf("tag %s → %s failed: %v", src, dst, err)}
 		}
@@ -465,7 +465,7 @@ func (m *Model) performDelete() tea.Cmd {
 		id := img.ID
 		short := img.ShortID
 		cmds = append(cmds, func() tea.Msg {
-			err := m.client.DeleteImage(context.Background(), id)
+			err := m.client.DeleteImage(cli.DefaultCtx(), id)
 			if err != nil {
 				return screens.StatusMsg{Toast: fmt.Sprintf("delete %s failed: %v", short, err)}
 			}

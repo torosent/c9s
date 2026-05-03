@@ -75,7 +75,7 @@ func New(client cli.Client, clk clock.Clock, p theme.Palette) *Model {
 func (m *Model) Init() tea.Cmd {
 	return tea.Batch(
 		state.MakeRefreshedCmd[cli.Network](
-			context.Background(),
+			cli.DefaultCtx(),
 			func(ctx context.Context) ([]cli.Network, error) {
 				return m.client.ListNetworks(ctx)
 			},
@@ -114,7 +114,7 @@ func (m *Model) Update(msg tea.Msg) (screens.Screen, tea.Cmd) {
 		}
 		cmds = append(cmds,
 			state.MakeRefreshedCmd[cli.Network](
-				context.Background(),
+				cli.DefaultCtx(),
 				func(ctx context.Context) ([]cli.Network, error) {
 					return m.client.ListNetworks(ctx)
 				},
@@ -162,7 +162,7 @@ func (m *Model) Update(msg tea.Msg) (screens.Screen, tea.Cmd) {
 		}
 		if m.keymap.Matches("refresh", msg) {
 			return m, state.MakeRefreshedCmd[cli.Network](
-				context.Background(),
+				cli.DefaultCtx(),
 				func(ctx context.Context) ([]cli.Network, error) {
 					return m.client.ListNetworks(ctx)
 				},
@@ -342,7 +342,7 @@ func (m *Model) performDelete() tea.Cmd {
 	for _, n := range ns {
 		name := n.Name
 		cmds = append(cmds, func() tea.Msg {
-			err := m.client.DeleteNetwork(context.Background(), name)
+			err := m.client.DeleteNetwork(cli.DefaultCtx(), name)
 			if err != nil {
 				return screens.StatusMsg{Toast: fmt.Sprintf("delete %s failed: %v", name, err)}
 			}

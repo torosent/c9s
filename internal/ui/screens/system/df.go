@@ -1,7 +1,6 @@
 package system
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/charmbracelet/bubbles/table"
@@ -62,7 +61,7 @@ func (m DFModel) Init() tea.Cmd {
 
 func (m DFModel) refreshCmd() tea.Cmd {
 	return func() tea.Msg {
-		df, err := m.client.SystemDF(context.Background())
+		df, err := m.client.SystemDF(cli.DefaultCtx())
 		if err != nil {
 			return screens.StatusMsg{Toast: fmt.Sprintf("system df failed: %v", err)}
 		}
