@@ -694,11 +694,15 @@ func (m Model) runCommand(cmd string) (tea.Model, tea.Cmd) {
 			m.screens[id] = newScr
 		}
 		m.statusBar = NewStatusBar(p)
-		m.toast = fmt.Sprintf("loaded skin: %s", arg)
 		m.skinName = arg
 		// Persist to config.toml so this skin loads automatically next time.
+		// Surface a persistence failure in the toast so the user sees it
+		// immediately rather than silently relying on the error log.
 		if err := config.SaveSkin(arg); err != nil {
+			m.toast = fmt.Sprintf("loaded skin: %s (but failed to persist: %v)", arg, err)
 			m.logError("skin.persist", arg, fmt.Sprintf("could not save skin: %v", err), err.Error())
+		} else {
+			m.toast = fmt.Sprintf("loaded skin: %s", arg)
 		}
 		return m, nil
 

@@ -298,7 +298,9 @@ func XDGConfigPath() (string, error) {
 
 // SaveSkin persists the active skin name to the user's config.toml so it
 // survives across c9s sessions. Other config fields are left untouched if
-// the file already exists; otherwise a minimal config is written.
+// the file already exists; otherwise a minimal config is written. The
+// file is fsync'd before close so the value is durable across power loss
+// or sudden process termination.
 func SaveSkin(name string) error {
 	path, err := XDGConfigPath()
 	if err != nil {
@@ -317,5 +319,11 @@ func SaveSkin(name string) error {
 	}
 	defer f.Close()
 
-	return toml.NewEncoder(f).Encode(&cfg)
+	if err := toml.NewEncoder(f).Encode(&cfg); err != nil {
+		return fmt.Errorf("encode %s: %w", path, err)
+	}
+	if err := f.Sync(); err != nil {
+		return fmt.Errorf("sync %s: %w", path, err)
+	}
+	return nil
 }
