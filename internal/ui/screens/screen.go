@@ -4,7 +4,18 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/torosent/c9s/internal/ui/keymap"
 	"github.com/torosent/c9s/internal/ui/modals"
+	"github.com/torosent/c9s/internal/ui/theme"
 )
+
+// PaletteChangedMsg is broadcast to every registered screen when the user
+// switches skins. Each screen handles it by updating its internal palette
+// (and restyling any cached widgets that captured colors at construction
+// time, e.g. a bubbles/table.Styles). Screens that don't care about the
+// palette can ignore the message and Update will fall through to its
+// default case.
+type PaletteChangedMsg struct {
+	P theme.Palette
+}
 
 // Screen represents a full-screen view in the TUI (e.g., containers, images).
 // Each screen manages its own state, keybindings, and rendering.

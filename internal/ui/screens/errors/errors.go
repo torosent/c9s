@@ -161,6 +161,10 @@ func (m *Model) Update(msg tea.Msg) (screens.Screen, tea.Cmd) {
 		m.refreshEntries()
 		cmds = append(cmds, m.tickRefresh())
 
+	case screens.PaletteChangedMsg:
+		m.palette = msg.P
+		m.table.SetStyles(skinx.TableStyles(msg.P))
+
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
 		m.height = msg.Height

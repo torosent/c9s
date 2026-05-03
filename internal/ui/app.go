@@ -685,28 +685,20 @@ func (m Model) runCommand(cmd string) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 		m.palette = p
-		m.screens["containers"] = containerscreen.New(m.client, m.clk, p)
-		m.screens["images"] = imagesscreen.New(m.client, m.clk, p)
-		m.screens["volumes"] = volumesscreen.New(m.client, m.clk, p)
-		m.screens["networks"] = networksscreen.New(m.client, m.clk, p)
-		m.screens["builder"] = builderscreen.New(m.client, m.clk, p)
-		m.screens["registry"] = registryscreen.New(m.client, m.clk, p)
-		m.screens["system"] = systemscreen.NewServices(m.client, m.clk, p)
-		m.screens["df"] = systemscreen.NewDF(m.client, m.clk, p)
-		m.screens["dns"] = systemscreen.NewDNS(m.client, m.clk, p)
-		m.screens["property"] = systemscreen.NewProperty(m.client, m.clk, p)
-		m.screens["kernel"] = systemscreen.NewKernel(m.client, m.clk, p)
-		m.screens["syslogs"] = systemscreen.NewLogs(m.client, m.clk, p)
+		// Broadcast palette change to every registered screen so each
+		// can update its colors without losing state (filter, marks,
+		// sort, scroll, etc.). Screens that don't care about the
+		// palette ignore the message.
+		for id, scr := range m.screens {
+			newScr, _ := scr.Update(screens.PaletteChangedMsg{P: p})
+			m.screens[id] = newScr
+		}
 		m.statusBar = NewStatusBar(p)
 		m.toast = fmt.Sprintf("loaded skin: %s", arg)
 		m.skinName = arg
 		// Persist to config.toml so this skin loads automatically next time.
 		if err := config.SaveSkin(arg); err != nil {
 			m.logError("skin.persist", arg, fmt.Sprintf("could not save skin: %v", err), err.Error())
-		}
-		// Re-init the active screen so it kicks off a fresh data fetch.
-		if scr, ok := m.screens[m.active]; ok {
-			return m, scr.Init()
 		}
 		return m, nil
 

@@ -97,6 +97,9 @@ func (m *Model) Update(msg tea.Msg) (screens.Screen, tea.Cmd) {
 	case RefreshMsg:
 		cmds = append(cmds, m.refresh())
 
+	case screens.PaletteChangedMsg:
+		m.palette = msg.P
+
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
 		m.height = msg.Height

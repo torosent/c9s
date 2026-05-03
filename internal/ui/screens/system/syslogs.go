@@ -96,6 +96,9 @@ func (m *LogsModel) waitEvent() tea.Cmd {
 // Update implements screens.Screen.
 func (m *LogsModel) Update(msg tea.Msg) (screens.Screen, tea.Cmd) {
 	switch msg := msg.(type) {
+	case screens.PaletteChangedMsg:
+		m.palette = msg.P
+
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
 		m.height = msg.Height

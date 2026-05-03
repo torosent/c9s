@@ -90,6 +90,10 @@ func (m *Model) Update(msg tea.Msg) (screens.Screen, tea.Cmd) {
 	var cmds []tea.Cmd
 
 	switch msg := msg.(type) {
+	case screens.PaletteChangedMsg:
+		m.palette = msg.P
+		m.tbl.SetStyles(skinx.TableStyles(msg.P))
+
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
 		m.height = msg.Height
