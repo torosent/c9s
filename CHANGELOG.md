@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-05-03
+
 ### Changed
 
 - Default theme is now `k9s-gruvbox-dark`. Previously new installations
@@ -14,6 +16,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   ships bundled and is more pleasant out of the box. Existing users
   whose `~/.config/c9s/config.toml` pins `theme.name` are unaffected;
   to opt back in, delete the file or set `name = "dark"`.
+
+### Fixed
+
+- `:skin` now surfaces persistence failures in the toast (previously
+  silent — only logged to `errors-*.log`). The persisted config is
+  also `fsync`'d before close so the choice survives a Ctrl+C / sudden
+  exit immediately after switching skins.
 
 ## [0.1.1] - 2026-05-03
 
