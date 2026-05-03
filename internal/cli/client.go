@@ -147,16 +147,22 @@ func runRaw(ctx context.Context, c *DefaultClient, op string, args ...string) ([
 }
 
 // runVoid runs a command and returns nil on success or wrapped error on failure.
+// Stdout is captured and surfaced via the wrapped error's Hint when stderr is
+// empty, since some `container` subcommands emit failure context on stdout.
 func runVoid(ctx context.Context, c *DefaultClient, op, resource string, args ...string) error {
 	//nolint:gosec // c.bin is controlled by c9s, not user input
 	cmd := exec.CommandContext(ctx, c.bin, args...)
 
-	var stderr bytes.Buffer
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
 
 	if err := cmd.Run(); err != nil {
-		stderrTrim := strings.TrimSpace(stderr.String())
-		return Wrap(op, resource, err, stderrTrim)
+		hint := strings.TrimSpace(stderr.String())
+		if hint == "" {
+			hint = strings.TrimSpace(stdout.String())
+		}
+		return Wrap(op, resource, err, hint)
 	}
 
 	return nil
@@ -205,12 +211,12 @@ func (c *DefaultClient) DeleteContainer(ctx context.Context, id string) error {
 
 // PauseContainer implements Client.
 func (c *DefaultClient) PauseContainer(ctx context.Context, id string) error {
-	return Wrap("cli.pause-unsupported", "container/"+id, context.Canceled, "this container CLI version does not support pause")
+	return Wrap("cli.pause-unsupported", "container/"+id, ErrUnsupported, "this container CLI version does not support pause")
 }
 
 // UnpauseContainer implements Client.
 func (c *DefaultClient) UnpauseContainer(ctx context.Context, id string) error {
-	return Wrap("cli.pause-unsupported", "container/"+id, context.Canceled, "this container CLI version does not support unpause")
+	return Wrap("cli.pause-unsupported", "container/"+id, ErrUnsupported, "this container CLI version does not support unpause")
 }
 
 // PruneContainers implements Client.

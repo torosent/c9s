@@ -184,6 +184,9 @@ func TestProgressModel_DoubleCtrlCCancels(t *testing.T) {
 	if !m.awaitCancel {
 		t.Fatal("awaitCancel should be true after first Ctrl+C")
 	}
+	if m.cancelGen != 1 {
+		t.Fatalf("cancelGen = %d, want 1 after first Ctrl+C", m.cancelGen)
+	}
 
 	// Check footer shows "press Ctrl+C again"
 	m.Update(tea.WindowSizeMsg{Width: 80, Height: 24})
@@ -202,6 +205,43 @@ func TestProgressModel_DoubleCtrlCCancels(t *testing.T) {
 	msg := cmd()
 	if _, ok := msg.(CloseModalMsg); !ok {
 		t.Errorf("cmd() returned %T, want CloseModalMsg", msg)
+	}
+}
+
+// TestProgressModel_CancelWindowExpires verifies that an expired
+// cancelWindowMsg from a prior Ctrl+C clears awaitCancel without a
+// goroutine writing the field directly. Regression guard for I2 of
+// the v0.1.0 review.
+func TestProgressModel_CancelWindowExpires(t *testing.T) {
+	stream := cli.Stream{
+		Events: make(chan cli.StreamEvent),
+		Done:   make(chan cli.StreamResult),
+		Cancel: func() {},
+	}
+	m := NewProgressModel(jobs.KindBuild, "/path", stream, clock.NewFake(time.Now()))
+
+	// Press Ctrl+C once to enter the await window.
+	m.Update(tea.KeyMsg{Type: tea.KeyCtrlC})
+	if !m.awaitCancel {
+		t.Fatal("awaitCancel should be true after first Ctrl+C")
+	}
+	gen := m.cancelGen
+
+	// Simulate the Tick firing.
+	m.Update(cancelWindowMsg{gen: gen})
+	if m.awaitCancel {
+		t.Error("awaitCancel should be false after window expired")
+	}
+
+	// A stale message from a previous generation should NOT clobber a
+	// fresh await window.
+	m.Update(tea.KeyMsg{Type: tea.KeyCtrlC}) // gen advances to 2
+	if !m.awaitCancel {
+		t.Fatal("awaitCancel should be true after second first-Ctrl+C")
+	}
+	m.Update(cancelWindowMsg{gen: gen}) // stale (gen=1)
+	if !m.awaitCancel {
+		t.Error("awaitCancel was cleared by stale cancelWindowMsg")
 	}
 }
 

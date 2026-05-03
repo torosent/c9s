@@ -129,7 +129,13 @@ func projectImage(ri rawImage) Image {
 	}
 }
 
-// parseHumanSize converts "26 MB" / "1.4 GB" / "159.3 MB" into bytes.
+// parseHumanSize converts size strings emitted by `container` ("26 MB" /
+// "1.4 GB" / "159.3 MB") into bytes. Empirically Apple's CLI emits binary
+// (IEC) values labeled with SI suffixes — see internal/cli/testdata/image-ls.json
+// where "500 MB" corresponds to a descriptor.size of 524288000 (exactly
+// 500 × 1024²). We additionally accept the explicit "MiB"/"GiB"/"TiB"
+// suffixes for the same multipliers, in case future versions of the CLI
+// switch to the unambiguous form.
 // Returns 0 on parse failure.
 func parseHumanSize(s string) int64 {
 	s = strings.TrimSpace(s)
@@ -144,17 +150,18 @@ func parseHumanSize(s string) int64 {
 	if err != nil {
 		return 0
 	}
+	const k = 1024
 	switch strings.ToUpper(parts[1]) {
 	case "B":
 		return int64(val)
-	case "KB":
-		return int64(val * 1024)
-	case "MB":
-		return int64(val * 1024 * 1024)
-	case "GB":
-		return int64(val * 1024 * 1024 * 1024)
-	case "TB":
-		return int64(val * 1024 * 1024 * 1024 * 1024)
+	case "KB", "KIB":
+		return int64(val * k)
+	case "MB", "MIB":
+		return int64(val * k * k)
+	case "GB", "GIB":
+		return int64(val * k * k * k)
+	case "TB", "TIB":
+		return int64(val * k * k * k * k)
 	}
 	return 0
 }

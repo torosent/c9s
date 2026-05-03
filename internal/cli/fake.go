@@ -118,6 +118,17 @@ func NewFake() *Fake {
 	return &Fake{}
 }
 
+// CallsCopy returns a thread-safe snapshot of the recorded call list. Tests
+// should use this rather than reading f.Calls directly when assertions can
+// race with another goroutine still mutating the fake.
+func (f *Fake) CallsCopy() []string {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	out := make([]string, len(f.Calls))
+	copy(out, f.Calls)
+	return out
+}
+
 // Version implements Client.
 func (f *Fake) Version(_ context.Context) (string, error) {
 	f.mu.Lock()

@@ -2,6 +2,8 @@ package cli
 
 import (
 	"encoding/json"
+	"regexp"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -156,22 +158,22 @@ func projectContainer(rc rawContainer, now time.Time) Container {
 // timeNow returns the current time; extracted for testing.
 var timeNow = time.Now
 
-// parsePruneCount extracts the count from "N containers removed" output.
+// prunedRe matches typical `container <verb> prune` exit lines such as
+// "Removed 3 containers" or "3 images removed". Anchoring on the unit
+// avoids false positives from container/image IDs (which contain digits).
+var prunedRe = regexp.MustCompile(`(?i)(\d+)\s+(?:containers?|images?|networks?|volumes?)`)
+
+// parsePruneCount extracts the count from `container prune` output.
+// Returns 0 if no recognizable count is found (callers should treat 0
+// as "indeterminate", not "definitely zero").
 func parsePruneCount(out []byte) int {
-	// Best-effort regex match
-	s := string(out)
-	// Look for pattern like "3 containers removed"
-	var count int
-	for i := 0; i < len(s); i++ {
-		if s[i] >= '0' && s[i] <= '9' {
-			n := 0
-			for i < len(s) && s[i] >= '0' && s[i] <= '9' {
-				n = n*10 + int(s[i]-'0')
-				i++
-			}
-			count = n
-			break
-		}
+	m := prunedRe.FindSubmatch(out)
+	if len(m) < 2 {
+		return 0
 	}
-	return count
+	n, err := strconv.Atoi(string(m[1]))
+	if err != nil {
+		return 0
+	}
+	return n
 }

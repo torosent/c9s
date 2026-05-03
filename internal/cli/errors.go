@@ -1,6 +1,14 @@
 package cli
 
-import "fmt"
+import (
+	"errors"
+	"fmt"
+)
+
+// ErrUnsupported is returned when the underlying `container` CLI does not
+// implement a requested operation (e.g., on older versions). Callers can
+// detect it with errors.Is(err, cli.ErrUnsupported).
+var ErrUnsupported = errors.New("operation not supported by this container CLI version")
 
 // Error wraps an underlying CLI failure with structured context.
 type Error struct {

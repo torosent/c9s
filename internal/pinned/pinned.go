@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 	"sync"
 	"time"
 
@@ -86,14 +87,9 @@ func (s *Store) List() []Pin {
 		pins = append(pins, p)
 	}
 
-	// Sort descending by added time
-	for i := 0; i < len(pins); i++ {
-		for j := i + 1; j < len(pins); j++ {
-			if pins[i].Added.Before(pins[j].Added) {
-				pins[i], pins[j] = pins[j], pins[i]
-			}
-		}
-	}
+	sort.Slice(pins, func(i, j int) bool {
+		return pins[i].Added.After(pins[j].Added)
+	})
 
 	return pins
 }

@@ -35,9 +35,13 @@ type ProgressModel struct {
 	exitCode    int
 	err         error
 	awaitCancel bool
-	cancelTimer *time.Timer
-	ctx         context.Context
-	cancel      context.CancelFunc
+	// cancelGen lets us drop expired cancelWindowMsg deliveries when the
+	// user has already pressed Ctrl+C a second time (which advances the
+	// generation) so the still-pending Tick from the previous press
+	// doesn't reset state we already cleared.
+	cancelGen int
+	ctx       context.Context
+	cancel    context.CancelFunc
 }
 
 // NewProgressModel creates a new progress modal.
@@ -85,6 +89,13 @@ type progressDoneMsg struct {
 
 type elapsedTickMsg struct{}
 
+// cancelWindowMsg is delivered ~2s after a first Ctrl+C press; it clears
+// awaitCancel back to false so a stale "press Ctrl+C again" hint doesn't
+// linger. The gen field guards against a second Ctrl+C arriving in
+// between (which advances ProgressModel.cancelGen) and being clobbered
+// by the in-flight expiration.
+type cancelWindowMsg struct{ gen int }
+
 func (m *ProgressModel) waitForEvent() tea.Cmd {
 	return func() tea.Msg {
 		event, ok := <-m.stream.Events
@@ -124,6 +135,14 @@ func (m *ProgressModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			cmds = append(cmds, m.tickElapsed())
 		}
 
+	case cancelWindowMsg:
+		// Only clear if this is the most recent Ctrl+C window; otherwise
+		// the user already pressed Ctrl+C twice and we're done, or pressed
+		// it again and a newer window is in flight.
+		if msg.gen == m.cancelGen && m.awaitCancel {
+			m.awaitCancel = false
+		}
+
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
 		m.height = msg.Height
@@ -154,17 +173,17 @@ func (m *ProgressModel) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			// Second press within window → actually cancel
 			m.stream.Cancel()
 			m.cancel()
-			if m.cancelTimer != nil {
-				m.cancelTimer.Stop()
-			}
 			return m, CloseModal()
 		}
-		// First press → set flag and start timer
+		// First press → set flag and arm a Tick that will clear it via
+		// cancelWindowMsg routed through Update (no goroutine writes to
+		// model fields, no race with the Bubble Tea event loop).
 		m.awaitCancel = true
-		m.cancelTimer = time.AfterFunc(2*time.Second, func() {
-			m.awaitCancel = false
+		m.cancelGen++
+		gen := m.cancelGen
+		return m, tea.Tick(2*time.Second, func(time.Time) tea.Msg {
+			return cancelWindowMsg{gen: gen}
 		})
-		return m, nil
 
 	case "ctrl+z":
 		// Detach: emit message to app to background this job
