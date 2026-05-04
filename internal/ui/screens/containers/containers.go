@@ -146,6 +146,7 @@ func (m *Model) Init() tea.Cmd {
 func (m *Model) Update(msg tea.Msg) (screens.Screen, tea.Cmd) {
 	var cmds []tea.Cmd
 
+	_ = msg // dbgView removed
 	switch msg := msg.(type) {
 	case screens.PaletteChangedMsg:
 		m.palette = msg.P
@@ -331,7 +332,8 @@ func (m *Model) View(width, height int) string {
 	if m.filter != "" {
 		filter = m.filter
 	}
-	return skinx.BorderedBox(m.palette, "Containers", filter, len(m.containers), width, height, body)
+	out := skinx.BorderedBox(m.palette, "Containers", filter, len(m.containers), width, height, body)
+	return out
 }
 
 // Title implements screens.Screen.

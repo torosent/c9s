@@ -214,19 +214,30 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.splash, cmd = m.splash.Update(msg)
 			return m, cmd
 		}
+		// Active screens are rendered into a body region whose height
+		// is m.height minus banner + status bar + palette line. The
+		// screens use their received WindowSizeMsg to size internal
+		// widgets (bubbles/table viewport, etc.); if we forward the
+		// full terminal height the table sizes itself larger than the
+		// body region, View() output overflows m.height, and
+		// bubbletea's renderer drops the top rows (banner) to fit —
+		// which is exactly the "post-exec only the bottom of the
+		// banner is visible" bug the user reported. Send the screen
+		// the body region's actual size.
+		bodyMsg := tea.WindowSizeMsg{Width: msg.Width, Height: m.bodyRegionHeight()}
 		var cmds []tea.Cmd
-		// Always propagate to the active screen so it can reflow.
 		if scr, ok := m.screens[m.active]; ok {
-			newScr, cmd := scr.Update(msg)
+			newScr, cmd := scr.Update(bodyMsg)
 			m.screens[m.active] = newScr
 			if cmd != nil {
 				cmds = append(cmds, cmd)
 			}
 		}
 		// Also propagate to the top modal if open, so its viewport resizes.
+		// Modals overlay the body region too, so they get bodyMsg.
 		if !m.stack.Empty() {
 			modal := m.stack.Top()
-			newModal, cmd := modal.Update(msg)
+			newModal, cmd := modal.Update(bodyMsg)
 			m.stack.Pop()
 			m.stack.Push(newModal)
 			if cmd != nil {
@@ -281,6 +292,18 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case SplashDoneMsg:
 		m.showSplash = false
+		// The initial WindowSizeMsg arrived while the splash was
+		// showing, so it never reached the active screen. Now that
+		// the splash is dismissed, forward a sized message so the
+		// screen's table viewport (which defaults to 9 rows) gets
+		// the body region's height. Without this the table renders
+		// only ~10 rows worth of content even on a tall terminal.
+		bodyMsg := tea.WindowSizeMsg{Width: m.width, Height: m.bodyRegionHeight()}
+		if scr, ok := m.screens[m.active]; ok {
+			newScr, cmd := scr.Update(bodyMsg)
+			m.screens[m.active] = newScr
+			return m, cmd
+		}
 		return m, nil
 
 	case screens.OpenModalMsg:
@@ -430,35 +453,17 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if msg.toast != "" {
 			m.toast = msg.toast
 		}
-		// Force a full altscreen rebuild after exec returns. After
-		// hours of trial — tea.ClearScreen alone, tea.WindowSize()
-		// (async), and synthetic WindowSizeMsg with known dims all
-		// failed to repaint cleanly in some terminals — the only
-		// thing that consistently works is toggling altscreen off
-		// then on. Bubbletea's RestoreTerminal calls
-		// renderer.enterAltScreen() unconditionally if altscreen was
-		// active, but that's idempotent — the altscreen is already
-		// active so it's a no-op. Forcing ExitAltScreen first makes
-		// the subsequent EnterAltScreen actually run the entry
-		// sequence (\033[?1049h) and reset the buffer.
-		//
-		// Sequence (not Batch) so the toggle and reflow run in
-		// strict order: exit → enter → reflow → re-init.
-		width, height := m.width, m.height
-		var initCmd tea.Cmd
+		// With bodyRegionHeight() now correctly sizing the screen,
+		// View() returns exactly m.height lines and bubbletea's
+		// RestoreTerminal (called by tea.ExecProcess after the shell
+		// exits) handles altscreen re-entry and repaint. No extra
+		// Cmds are needed — but we do refresh the active screen so
+		// the polling tick consumed during the suspend is rearmed
+		// and the user sees fresh data.
 		if scr, ok := m.screens[m.active]; ok {
-			initCmd = scr.Init()
+			return m, scr.Init()
 		}
-		seq := []tea.Cmd{
-			func() tea.Msg { return tea.ExitAltScreen() },
-			func() tea.Msg { return tea.EnterAltScreen() },
-			func() tea.Msg { return tea.ClearScreen() },
-			func() tea.Msg { return tea.WindowSizeMsg{Width: width, Height: height} },
-		}
-		if initCmd != nil {
-			seq = append(seq, initCmd)
-		}
-		return m, tea.Sequence(seq...)
+		return m, nil
 
 	case screens.StatusMsg:
 		m.toast = msg.Toast
@@ -510,7 +515,27 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		if globalMap.Matches("header_toggle", msg) {
 			m.headerVisible = !m.headerVisible
-			return m, nil
+			// Body region just changed by the banner's height; resize
+			// the active screen and any open modal so they reflow.
+			bodyMsg := tea.WindowSizeMsg{Width: m.width, Height: m.bodyRegionHeight()}
+			var cmds []tea.Cmd
+			if scr, ok := m.screens[m.active]; ok {
+				newScr, cmd := scr.Update(bodyMsg)
+				m.screens[m.active] = newScr
+				if cmd != nil {
+					cmds = append(cmds, cmd)
+				}
+			}
+			if !m.stack.Empty() {
+				modal := m.stack.Top()
+				newModal, cmd := modal.Update(bodyMsg)
+				m.stack.Pop()
+				m.stack.Push(newModal)
+				if cmd != nil {
+					cmds = append(cmds, cmd)
+				}
+			}
+			return m, tea.Batch(cmds...)
 		}
 		if globalMap.Matches("help", msg) {
 			if scr, ok := m.screens[m.active]; ok {
@@ -1194,13 +1219,7 @@ func (m Model) View() string {
 	}
 
 	// Build body
-	bodyHeight := m.height - 2 // status bar + palette line
-	if m.headerVisible {
-		bodyHeight -= 9 // banner: 2 rows top pad + 6 content + 1 bottom pad
-		if m.crumbs.Len() > 1 {
-			bodyHeight -= 1
-		}
-	}
+	bodyHeight := m.bodyRegionHeight()
 
 	body := ""
 	if scr, ok := m.screens[m.active]; ok {
@@ -1307,6 +1326,26 @@ func (m Model) View() string {
 		Foreground(m.palette.Fg).
 		Background(m.palette.Bg).
 		Render(out)
+}
+
+// bodyRegionHeight returns the number of rows available for the active
+// screen's View output, after subtracting the chrome (banner + status
+// bar + palette line + breadcrumbs). This is the height we pass to
+// scr.View() for the BorderedBox sizing AND the Height we forward to
+// the screen via WindowSizeMsg so its internal table viewport matches.
+// Mismatch was the root cause of the post-exec "only the bottom of
+// the banner is visible" bug — the screen's viewport overflowed the
+// body region, View() output exceeded m.height, and bubbletea's
+// renderer dropped the top rows to fit the actual terminal.
+func (m Model) bodyRegionHeight() int {
+	h := m.height - 2 // status bar + palette line
+	if m.headerVisible {
+		h -= 9 // banner: 2 rows top pad + 6 content + 1 bottom pad
+		if m.crumbs.Len() > 1 {
+			h -= 1
+		}
+	}
+	return h
 }
 
 func pluralize(n int) string {
