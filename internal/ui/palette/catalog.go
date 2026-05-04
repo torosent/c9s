@@ -50,11 +50,14 @@ func Catalog() []Command {
 		{Name: "save", Usage: "<ref> <tar>", Description: "Save image to tar file", Group: "action"},
 		{Name: "load", Usage: "<tar>", Description: "Load image from tar file", Group: "action"},
 		{Name: "login", Usage: "<host>", Description: "Login to a registry", Group: "action"},
+		{Name: "acr-login", Usage: "<registry>", Description: "Azure Container Registry login via az AAD token", Group: "action"},
 
 		// Customization
 		{Name: "skin", Usage: "<name>", Description: "Switch to a TOML skin (try :skins to list)", Group: "config"},
 		{Name: "skins", Description: "List available bundled skins", Group: "config"},
 		{Name: "import-skin", Usage: "<path>", Description: "Import a k9s YAML skin", Group: "config"},
+		{Name: "install-docker-shim", Usage: "[path]", Description: "Install docker→container compatibility shim", Group: "config"},
+		{Name: "uninstall-docker-shim", Usage: "[path]", Description: "Remove the c9s docker compatibility shim", Group: "config"},
 
 		// Meta
 		{Name: "help", Aliases: []string{"?"}, Description: "Show help overlay for the active screen", Group: "meta"},
