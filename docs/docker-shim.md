@@ -100,6 +100,39 @@ the `container` binary at a non-standard path can override the lookup.
 - You need pinned exit codes / output formatting compatible with
   docker — the shim doesn't massage stdout/stderr.
 
+## Detection of existing Docker
+
+Before writing the shim, `c9s install-docker-shim` walks `PATH` and lists
+any other `docker` executable it finds (in PATH order, so the *first*
+entry is the one shells will currently resolve `docker` to). It also
+checks for Docker Desktop at `/Applications/Docker.app`. Both checks
+print warnings to stderr but don't block install — they're informational
+so you can decide whether to reorder PATH afterwards.
+
+Example output when an existing docker is on PATH:
+
+```
+$ c9s install-docker-shim
+Warning: an existing docker binary is already on PATH:
+  - /usr/local/bin/docker
+After install, make sure the shim's directory is BEFORE
+the directory containing the existing docker on PATH, or
+the existing binary will continue to win.
+
+Warning: Docker Desktop is installed at /Applications/Docker.app.
+While Docker Desktop is running, the system docker daemon will
+still respond to whichever 'docker' binary your shell resolves
+first. The shim only redirects CLI calls to Apple containers; it
+doesn't affect Docker Desktop's running containers either way.
+
+Installed c9s docker shim to: /Users/you/.local/bin/docker
+...
+```
+
+Inside the TUI, the same checks compress into a single toast — the
+existing docker path and/or "Docker Desktop detected" tag is appended
+to the install confirmation.
+
 ## Limitations
 
 - `docker compose` is not handled. Run Apple's `container` directly

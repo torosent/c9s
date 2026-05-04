@@ -130,6 +130,71 @@ func DefaultPath() (string, error) {
 	return filepath.Join(home, ".local", "bin", "docker"), nil
 }
 
+// DockerDesktopAppPath is the canonical macOS install location for Docker
+// Desktop. The presence of the bundle is independent of whether
+// `/Applications/Docker.app/Contents/Resources/bin/docker` is on PATH —
+// users may have removed the symlink from /usr/local/bin while keeping
+// the app installed. We surface either signal in the install warnings so
+// the user gets a complete picture of what's already on the machine.
+const DockerDesktopAppPath = "/Applications/Docker.app"
+
+// DockerDesktopInstalled reports whether the Docker Desktop application
+// bundle exists at the canonical /Applications/Docker.app location.
+func DockerDesktopInstalled() bool {
+	info, err := os.Stat(DockerDesktopAppPath)
+	return err == nil && info.IsDir()
+}
+
+// DetectExistingDocker walks PATH and returns the absolute path of every
+// executable named "docker" it finds, in PATH order. The exclude argument
+// is resolved against PATH entries and skipped if matched (so a freshly
+// installed shim doesn't show up in its own report). Duplicate paths
+// (PATH directories that happen to contain symlinks resolving to the
+// same target) are de-duplicated by absolute path.
+//
+// On platforms with no PATH set (or no docker on it), returns an empty
+// slice and nil error. The caller can pair this with DockerDesktopInstalled
+// to surface a Docker.app-but-not-on-PATH state.
+func DetectExistingDocker(exclude string) ([]string, error) {
+	pathEnv := os.Getenv("PATH")
+	if pathEnv == "" {
+		return nil, nil
+	}
+
+	var excludeAbs string
+	if exclude != "" {
+		if abs, err := filepath.Abs(exclude); err == nil {
+			excludeAbs = abs
+		}
+	}
+
+	var found []string
+	seen := map[string]bool{}
+	for _, dir := range strings.Split(pathEnv, string(os.PathListSeparator)) {
+		if dir == "" {
+			continue
+		}
+		cand := filepath.Join(dir, "docker")
+		info, err := os.Stat(cand)
+		if err != nil || info.IsDir() || info.Mode().Perm()&0o111 == 0 {
+			continue
+		}
+		abs, err := filepath.Abs(cand)
+		if err != nil {
+			abs = cand
+		}
+		if abs == excludeAbs {
+			continue
+		}
+		if seen[abs] {
+			continue
+		}
+		seen[abs] = true
+		found = append(found, abs)
+	}
+	return found, nil
+}
+
 // Install writes Script to path, creating parent dirs as needed and
 // chmod'ing the result executable. If a file (or symlink, even broken)
 // already exists at path and force is false, Install errors out so we

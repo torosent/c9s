@@ -122,3 +122,95 @@ func TestDefaultPath(t *testing.T) {
 		t.Errorf("DefaultPath = %q, expected ~/.local/bin/docker suffix", p)
 	}
 }
+
+// helper: write an executable file at path so DetectExistingDocker
+// considers it a docker binary.
+func writeExe(t *testing.T, path string) {
+	t.Helper()
+	if err := os.WriteFile(path, []byte("#!/bin/sh\necho fake\n"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestDetectExistingDocker_None(t *testing.T) {
+	dir := t.TempDir() // empty
+	t.Setenv("PATH", dir)
+	got, err := DetectExistingDocker("")
+	if err != nil {
+		t.Fatalf("DetectExistingDocker: %v", err)
+	}
+	if len(got) != 0 {
+		t.Errorf("expected no dockers, got %v", got)
+	}
+}
+
+func TestDetectExistingDocker_FindsAndOrdersByPath(t *testing.T) {
+	first := t.TempDir()
+	second := t.TempDir()
+	writeExe(t, filepath.Join(first, "docker"))
+	writeExe(t, filepath.Join(second, "docker"))
+	t.Setenv("PATH", first+string(os.PathListSeparator)+second)
+
+	got, err := DetectExistingDocker("")
+	if err != nil {
+		t.Fatalf("DetectExistingDocker: %v", err)
+	}
+	if len(got) != 2 {
+		t.Fatalf("expected 2 dockers, got %v", got)
+	}
+	if got[0] != filepath.Join(first, "docker") {
+		t.Errorf("first entry = %q, want %q", got[0], filepath.Join(first, "docker"))
+	}
+	if got[1] != filepath.Join(second, "docker") {
+		t.Errorf("second entry = %q, want %q", got[1], filepath.Join(second, "docker"))
+	}
+}
+
+func TestDetectExistingDocker_ExcludesOurShim(t *testing.T) {
+	dir := t.TempDir()
+	other := t.TempDir()
+	shim := filepath.Join(dir, "docker")
+	otherDocker := filepath.Join(other, "docker")
+	writeExe(t, shim)
+	writeExe(t, otherDocker)
+	t.Setenv("PATH", dir+string(os.PathListSeparator)+other)
+
+	got, err := DetectExistingDocker(shim)
+	if err != nil {
+		t.Fatalf("DetectExistingDocker: %v", err)
+	}
+	if len(got) != 1 || got[0] != otherDocker {
+		t.Errorf("expected only the other docker (%q), got %v", otherDocker, got)
+	}
+}
+
+func TestDetectExistingDocker_SkipsNonExecutable(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "docker"), []byte("not exec"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("PATH", dir)
+	got, err := DetectExistingDocker("")
+	if err != nil {
+		t.Fatalf("DetectExistingDocker: %v", err)
+	}
+	if len(got) != 0 {
+		t.Errorf("non-executable docker should be ignored, got %v", got)
+	}
+}
+
+func TestDetectExistingDocker_SkipsDirectory(t *testing.T) {
+	dir := t.TempDir()
+	// Edge case: a directory literally named 'docker' in a PATH entry.
+	if err := os.MkdirAll(filepath.Join(dir, "docker"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("PATH", dir)
+	got, err := DetectExistingDocker("")
+	if err != nil {
+		t.Fatalf("DetectExistingDocker: %v", err)
+	}
+	if len(got) != 0 {
+		t.Errorf("a directory named docker should be ignored, got %v", got)
+	}
+}

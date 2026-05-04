@@ -689,12 +689,21 @@ func (m Model) runCommand(cmd string) (tea.Model, tea.Cmd) {
 		if abs, err := filepath.Abs(path); err == nil {
 			path = abs
 		}
+		// Detect existing docker(s) so the toast can warn about PATH
+		// precedence in the same breath as reporting the install.
+		others, _ := dockershim.DetectExistingDocker(path)
 		if err := dockershim.Install(path, false); err != nil {
 			m.toast = fmt.Sprintf("install-docker-shim failed: %v (use 'c9s install-docker-shim --force' to overwrite)", err)
 			m.logError("dockershim.install", path, fmt.Sprintf("install failed: %v", err), err.Error())
 			return m, nil
 		}
-		m.toast = fmt.Sprintf("docker shim installed → %s · ensure %s is on PATH", path, filepath.Dir(path))
+		toast := fmt.Sprintf("docker shim installed → %s · ensure %s is on PATH", path, filepath.Dir(path))
+		if len(others) > 0 {
+			toast += fmt.Sprintf(" · existing docker at %s — make sure shim's dir comes first on PATH", others[0])
+		} else if dockershim.DockerDesktopInstalled() {
+			toast += " · Docker Desktop detected at /Applications/Docker.app — its bin dir may be on PATH"
+		}
+		m.toast = toast
 		return m, nil
 
 	case "uninstall-docker-shim":

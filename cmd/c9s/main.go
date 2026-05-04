@@ -124,6 +124,28 @@ func runInstallDockerShim(args []string) {
 		target = abs
 	}
 
+	// Detect any existing docker so the user knows what the shim is
+	// going to compete with on PATH and which app might be running.
+	others, _ := dockershim.DetectExistingDocker(target)
+	if len(others) > 0 {
+		fmt.Fprintln(os.Stderr, "Warning: an existing docker binary is already on PATH:")
+		for _, p := range others {
+			fmt.Fprintf(os.Stderr, "  - %s\n", p)
+		}
+		fmt.Fprintln(os.Stderr, "After install, make sure the shim's directory is BEFORE")
+		fmt.Fprintln(os.Stderr, "the directory containing the existing docker on PATH, or")
+		fmt.Fprintln(os.Stderr, "the existing binary will continue to win.")
+		fmt.Fprintln(os.Stderr)
+	}
+	if dockershim.DockerDesktopInstalled() {
+		fmt.Fprintln(os.Stderr, "Warning: Docker Desktop is installed at /Applications/Docker.app.")
+		fmt.Fprintln(os.Stderr, "While Docker Desktop is running, the system docker daemon will")
+		fmt.Fprintln(os.Stderr, "still respond to whichever 'docker' binary your shell resolves")
+		fmt.Fprintln(os.Stderr, "first. The shim only redirects CLI calls to Apple containers; it")
+		fmt.Fprintln(os.Stderr, "doesn't affect Docker Desktop's running containers either way.")
+		fmt.Fprintln(os.Stderr)
+	}
+
 	if err := dockershim.Install(target, *force); err != nil {
 		fmt.Fprintf(os.Stderr, "install-docker-shim: %v\n", err)
 		os.Exit(1)
