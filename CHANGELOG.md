@@ -9,6 +9,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`x` (stop), `Shift+K` (kill), `Shift+R` (restart), and `p` (pause)
+  now refresh the table immediately.** Previously they relied on the
+  2-second poll tick, so the user pressed `x` to stop a container and
+  saw `running` for up to 2 seconds. Each lifecycle action now batches
+  a follow-up `ListContainers` refresh, mirroring the existing
+  `delete` / `prune` behaviour, and surfaces a clear "stopped <id>" /
+  "killed <id>" / etc. toast.
+- **`s` (shell) on a non-running container shows a toast instead of
+  failing silently.** `container exec -it <id> <shell>` exits
+  immediately when the target container isn't running, leaving the
+  user staring at the same screen with no feedback. The screen now
+  refuses to issue the exec for non-running containers and surfaces
+  `can't open shell: <id> is stopped`. ExecProcess errors at the
+  `app.go` layer are also surfaced as a toast so any other failure
+  (image lacks `/bin/sh`, race with another stop, etc.) is visible.
 - **Splash dropping the active screen's first refresh and tick.** The
   app's catch-all message-forwarding block was gated behind
   `!m.showSplash`, which meant any message dispatched by the active

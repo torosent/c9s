@@ -361,8 +361,22 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, modal.Init()
 
 	case screens.SuspendShellMsg:
+		// Surface ExecProcess errors as a toast so the user gets
+		// feedback when `container exec -it <id> <shell>` fails (e.g.,
+		// container raced into a stopped state, or the image has no
+		// /bin/sh). Without this the TUI just silently resumes after
+		// an instant exec failure and the user thinks 's' is broken.
+		//
 		// #nosec G204 -- ID/Shell originate from internal CLI snapshots and the screen's caps probe, not user-supplied strings; binary path is the configured cli.Client.Bin().
-		cmd := tea.ExecProcess(exec.Command(m.client.Bin(), "exec", "-it", msg.ID, msg.Shell), func(error) tea.Msg {
+		execCmd := exec.Command(m.client.Bin(), "exec", "-it", msg.ID, msg.Shell)
+		shortID := msg.ID
+		if len(shortID) > 12 {
+			shortID = shortID[:12]
+		}
+		cmd := tea.ExecProcess(execCmd, func(err error) tea.Msg {
+			if err != nil {
+				return screens.StatusMsg{Toast: fmt.Sprintf("shell %s failed: %v", shortID, err)}
+			}
 			return nil
 		})
 		return m, cmd

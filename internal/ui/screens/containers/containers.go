@@ -550,7 +550,9 @@ func (m *Model) inspectFocused() tea.Cmd {
 	}
 }
 
-// stopSelected stops the targeted containers.
+// stopSelected stops the targeted containers. Includes an immediate
+// refresh so the table reflects the new state without waiting for the
+// 2-second poll tick.
 func (m *Model) stopSelected() tea.Cmd {
 	ids := m.targetIDs()
 	if len(ids) == 0 {
@@ -564,15 +566,18 @@ func (m *Model) stopSelected() tea.Cmd {
 			ctx := cli.DefaultCtx()
 			err := m.client.StopContainer(ctx, id)
 			if err != nil {
-				return screens.StatusMsg{Toast: fmt.Sprintf("stop %s failed: %v", id, err)}
+				return screens.StatusMsg{Toast: fmt.Sprintf("stop %s failed: %v", formatShortID(id), err)}
 			}
-			return nil
+			return screens.StatusMsg{Toast: fmt.Sprintf("stopped %s", formatShortID(id))}
 		})
 	}
+	cmds = append(cmds, m.refreshContainersCmd())
 	return tea.Batch(cmds...)
 }
 
-// killSelected kills the targeted containers.
+// killSelected kills the targeted containers. Includes an immediate
+// refresh so the table reflects the new state without waiting for the
+// 2-second poll tick.
 func (m *Model) killSelected() tea.Cmd {
 	ids := m.targetIDs()
 	if len(ids) == 0 {
@@ -586,15 +591,18 @@ func (m *Model) killSelected() tea.Cmd {
 			ctx := cli.DefaultCtx()
 			err := m.client.KillContainer(ctx, id)
 			if err != nil {
-				return screens.StatusMsg{Toast: fmt.Sprintf("kill %s failed: %v", id, err)}
+				return screens.StatusMsg{Toast: fmt.Sprintf("kill %s failed: %v", formatShortID(id), err)}
 			}
-			return nil
+			return screens.StatusMsg{Toast: fmt.Sprintf("killed %s", formatShortID(id))}
 		})
 	}
+	cmds = append(cmds, m.refreshContainersCmd())
 	return tea.Batch(cmds...)
 }
 
-// restartSelected restarts the targeted containers.
+// restartSelected restarts the targeted containers. Includes an
+// immediate refresh so the table reflects the new state without waiting
+// for the 2-second poll tick.
 func (m *Model) restartSelected() tea.Cmd {
 	ids := m.targetIDs()
 	if len(ids) == 0 {
@@ -608,11 +616,12 @@ func (m *Model) restartSelected() tea.Cmd {
 			ctx := cli.DefaultCtx()
 			err := m.client.RestartContainer(ctx, id)
 			if err != nil {
-				return screens.StatusMsg{Toast: fmt.Sprintf("restart %s failed: %v", id, err)}
+				return screens.StatusMsg{Toast: fmt.Sprintf("restart %s failed: %v", formatShortID(id), err)}
 			}
-			return nil
+			return screens.StatusMsg{Toast: fmt.Sprintf("restarted %s", formatShortID(id))}
 		})
 	}
+	cmds = append(cmds, m.refreshContainersCmd())
 	return tea.Batch(cmds...)
 }
 
@@ -641,7 +650,9 @@ func (m *Model) deleteSelected() tea.Cmd {
 	}
 }
 
-// pauseSelected pauses the targeted containers.
+// pauseSelected pauses the targeted containers. Includes an immediate
+// refresh so the table reflects the new state without waiting for the
+// 2-second poll tick.
 func (m *Model) pauseSelected() tea.Cmd {
 	ids := m.targetIDs()
 	if len(ids) == 0 {
@@ -655,19 +666,46 @@ func (m *Model) pauseSelected() tea.Cmd {
 			ctx := cli.DefaultCtx()
 			err := m.client.PauseContainer(ctx, id)
 			if err != nil {
-				return screens.StatusMsg{Toast: fmt.Sprintf("pause %s failed: %v", id, err)}
+				return screens.StatusMsg{Toast: fmt.Sprintf("pause %s failed: %v", formatShortID(id), err)}
 			}
-			return nil
+			return screens.StatusMsg{Toast: fmt.Sprintf("paused %s", formatShortID(id))}
 		})
 	}
+	cmds = append(cmds, m.refreshContainersCmd())
 	return tea.Batch(cmds...)
 }
 
-// openShell emits a SuspendShellMsg for the focused container.
+// refreshContainersCmd returns a Cmd that fetches the latest container
+// list. Used after lifecycle actions (stop/kill/restart/pause/delete)
+// so the user sees the new state immediately rather than waiting for
+// the 2-second poll tick.
+func (m *Model) refreshContainersCmd() tea.Cmd {
+	client := m.client
+	return state.MakeRefreshedCmd[cli.Container](
+		cli.DefaultCtx(),
+		func(ctx context.Context) ([]cli.Container, error) {
+			return client.ListContainers(ctx, true)
+		},
+		cli.ResourceContainers,
+	)
+}
+
+// openShell emits a SuspendShellMsg for the focused container. Refuses
+// (with a toast) to exec into a non-running container — `container
+// exec -it` exits immediately on a stopped container, leaving the user
+// staring at the same screen with no feedback.
 func (m *Model) openShell() tea.Cmd {
 	c := m.focusedContainer()
 	if c == nil {
 		return nil
+	}
+
+	if !isRunning(c.Status) {
+		return func() tea.Msg {
+			return screens.StatusMsg{
+				Toast: fmt.Sprintf("can't open shell: %s is %s", formatShortID(c.ID), strings.ToLower(c.Status)),
+			}
+		}
 	}
 
 	shell := os.Getenv("SHELL")
@@ -680,6 +718,19 @@ func (m *Model) openShell() tea.Cmd {
 			ID:    c.ID,
 			Shell: shell,
 		}
+	}
+}
+
+// isRunning returns true when the container is in a state that accepts
+// `container exec -it`. Apple's `container` reports lower-case states
+// ("running", "stopped", "exited", "starting", "paused"); we accept
+// "running" and "starting" to mirror Docker's exec semantics.
+func isRunning(status string) bool {
+	switch strings.ToLower(strings.TrimSpace(status)) {
+	case "running", "starting":
+		return true
+	default:
+		return false
 	}
 }
 

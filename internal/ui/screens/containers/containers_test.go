@@ -306,25 +306,51 @@ func TestContainersXStopsContainer(t *testing.T) {
 	s, _ := m.Update(msg)
 	m = assertModel(s)
 
-	// Press 'x' to stop
+	// Press 'x' to stop. Returns a tea.Batch of {stop, refresh}; drain
+	// both so we observe StopContainer AND the follow-up ListContainers.
 	keyMsg := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'x'}}
 	_, cmd := m.Update(keyMsg)
-
-	if cmd != nil {
-		_ = cmd()
+	if cmd == nil {
+		t.Fatal("expected 'x' key to return a cmd")
 	}
+	drainBatch(cmd)
 
-	// Check that StopContainer was called
-	found := false
-	for _, call := range fake.Calls {
-		if call == "StopContainer" {
-			found = true
-			break
+	// Check that StopContainer AND a follow-up ListContainers were called
+	if !calledOnce(fake.Calls, "StopContainer") {
+		t.Errorf("expected StopContainer to be called; calls=%v", fake.Calls)
+	}
+	if !calledOnce(fake.Calls, "ListContainers") {
+		t.Errorf("expected ListContainers refresh after stop; calls=%v", fake.Calls)
+	}
+}
+
+// drainBatch invokes every Cmd inside a tea.Batch'd Cmd. tea.Batch
+// returns a Cmd that yields a tea.BatchMsg ([]Cmd) when called; we then
+// run each inner Cmd. Used so action+refresh batches actually exercise
+// both legs in tests.
+func drainBatch(cmd tea.Cmd) {
+	if cmd == nil {
+		return
+	}
+	msg := cmd()
+	batch, ok := msg.(tea.BatchMsg)
+	if !ok {
+		return
+	}
+	for _, c := range batch {
+		if c != nil {
+			_ = c()
 		}
 	}
-	if !found {
-		t.Error("expected StopContainer to be called")
+}
+
+func calledOnce(calls []string, want string) bool {
+	for _, c := range calls {
+		if c == want {
+			return true
+		}
 	}
+	return false
 }
 
 func TestContainersSEmitsSuspendShellMsg(t *testing.T) {
@@ -373,6 +399,94 @@ func TestContainersSEmitsSuspendShellMsg(t *testing.T) {
 		if suspendMsg.Shell != expectedShell {
 			t.Errorf("expected Shell=%q, got %q", expectedShell, suspendMsg.Shell)
 		}
+	}
+}
+
+// Regression test: pressing 's' on a non-running container should NOT
+// emit a SuspendShellMsg, because `container exec -it` against a
+// stopped container exits immediately and the user gets no feedback.
+// Instead the screen surfaces a clear toast.
+func TestContainersSOnStoppedContainerEmitsToast(t *testing.T) {
+	fake := &cli.Fake{
+		ListContainersResp: []cli.Container{
+			{ID: "c1stopped", ShortID: "c1stopped", Image: "nginx", Status: "stopped"},
+		},
+	}
+	m := New(fake, clock.NewFake(time.Now()), theme.DefaultDark())
+	m.Init()
+	s, _ := m.Update(state.RefreshedMsg[cli.Container]{
+		Resource: cli.ResourceContainers,
+		Snapshot: state.Snapshot[cli.Container]{Items: fake.ListContainersResp, FetchedAt: time.Now()},
+	})
+	m = assertModel(s)
+
+	_, cmd := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'s'}})
+	if cmd == nil {
+		t.Fatal("expected 's' on stopped container to return a status-toast cmd, got nil")
+	}
+	switch out := cmd().(type) {
+	case screens.SuspendShellMsg:
+		t.Fatalf("expected status toast, got SuspendShellMsg %+v — `container exec -it` would have failed silently", out)
+	case screens.StatusMsg:
+		if !strings.Contains(out.Toast, "stopped") {
+			t.Errorf("toast should mention stopped state; got %q", out.Toast)
+		}
+	default:
+		t.Fatalf("expected StatusMsg, got %T", out)
+	}
+}
+
+// Regression test: the kill/restart/pause helpers all batch the action
+// with a follow-up ListContainers refresh so the table reflects the new
+// state without waiting for the 2-second poll tick.
+func TestLifecycleActionsRefreshAfterAction(t *testing.T) {
+	cases := []struct {
+		name      string
+		fakeReset func(*cli.Fake)
+		runAction func(*Model) tea.Cmd
+		wantCall  string
+	}{
+		{
+			name:      "kill",
+			runAction: func(m *Model) tea.Cmd { return m.killSelected() },
+			wantCall:  "KillContainer",
+		},
+		{
+			name:      "restart",
+			runAction: func(m *Model) tea.Cmd { return m.restartSelected() },
+			wantCall:  "RestartContainer",
+		},
+		{
+			name:      "pause",
+			runAction: func(m *Model) tea.Cmd { return m.pauseSelected() },
+			wantCall:  "PauseContainer",
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			fake := &cli.Fake{
+				ListContainersResp: []cli.Container{
+					{ID: "c1", ShortID: "c1", Image: "nginx", Status: "running"},
+				},
+			}
+			m := New(fake, clock.NewFake(time.Now()), theme.DefaultDark())
+			m.Init()
+			s, _ := m.Update(state.RefreshedMsg[cli.Container]{
+				Resource: cli.ResourceContainers,
+				Snapshot: state.Snapshot[cli.Container]{Items: fake.ListContainersResp, FetchedAt: time.Now()},
+			})
+			m = assertModel(s)
+
+			fake.Calls = nil
+			drainBatch(tc.runAction(m))
+
+			if !calledOnce(fake.Calls, tc.wantCall) {
+				t.Errorf("expected %s to be called; calls=%v", tc.wantCall, fake.Calls)
+			}
+			if !calledOnce(fake.Calls, "ListContainers") {
+				t.Errorf("expected follow-up ListContainers refresh after %s; calls=%v", tc.name, fake.Calls)
+			}
+		})
 	}
 }
 
