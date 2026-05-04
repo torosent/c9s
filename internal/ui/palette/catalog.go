@@ -51,6 +51,7 @@ func Catalog() []Command {
 		{Name: "load", Usage: "<tar>", Description: "Load image from tar file", Group: "action"},
 		{Name: "login", Usage: "<host>", Description: "Login to a registry", Group: "action"},
 		{Name: "acr-login", Usage: "<registry>", Description: "Azure Container Registry login via az AAD token", Group: "action"},
+		{Name: "prune", Description: "Remove stopped containers (containers screen only)", Group: "action"},
 
 		// Customization
 		{Name: "skin", Usage: "<name>", Description: "Switch to a TOML skin (try :skins to list)", Group: "config"},

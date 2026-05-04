@@ -79,6 +79,11 @@ func New(client cli.Client, clk clock.Clock, p theme.Palette) *Model {
 		Help:        "Delete",
 		Description: "Delete container",
 	})
+	km.Add("prune", keymap.Binding{
+		Keys:        []string{"shift+p", "P"},
+		Help:        "Prune",
+		Description: "Remove all stopped containers",
+	})
 	km.Add("pause", keymap.Binding{
 		Keys:        []string{"p"},
 		Help:        "Pause",
@@ -164,6 +169,8 @@ func (m *Model) Update(msg tea.Msg) (screens.Screen, tea.Cmd) {
 		switch msg.Result.Tag {
 		case "delete":
 			cmds = append(cmds, m.performDelete())
+		case "prune":
+			cmds = append(cmds, m.performPrune())
 		}
 
 	case state.RefreshedMsg[cli.Container]:
@@ -265,6 +272,10 @@ func (m *Model) Update(msg tea.Msg) (screens.Screen, tea.Cmd) {
 
 		if m.keymap.Matches("delete", msg) {
 			return m, m.deleteSelected()
+		}
+
+		if m.keymap.Matches("prune", msg) {
+			return m, m.pruneStopped()
 		}
 
 		if m.keymap.Matches("pause", msg) {
@@ -763,6 +774,80 @@ func (m *Model) performDelete() tea.Cmd {
 		delete(marks, k)
 	}
 	return tea.Batch(cmds...)
+}
+
+// stoppedContainers returns the containers in a non-running state — these
+// are what `:prune` (and the Shift+P hotkey) will remove.
+func (m *Model) stoppedContainers() []cli.Container {
+	var out []cli.Container
+	for _, c := range m.containers {
+		switch strings.ToLower(c.Status) {
+		case "running", "starting", "paused":
+			// keep
+		default:
+			out = append(out, c)
+		}
+	}
+	return out
+}
+
+// pruneStopped opens a confirm modal listing the stopped containers that
+// will be removed. If there are none, surfaces a status toast instead so
+// the user gets unambiguous feedback rather than a confusing empty modal.
+func (m *Model) pruneStopped() tea.Cmd {
+	stopped := m.stoppedContainers()
+	if len(stopped) == 0 {
+		return func() tea.Msg {
+			return screens.StatusMsg{Toast: "no stopped containers to prune"}
+		}
+	}
+	lines := make([]string, len(stopped))
+	for i, c := range stopped {
+		// Show short id + image so the user can sanity-check what's being
+		// removed. Mark short-id with a stopped/exited tag for clarity.
+		lines[i] = fmt.Sprintf("%s  %s  [%s]", formatShortID(c.ID), c.Image, strings.ToLower(c.Status))
+	}
+	return func() tea.Msg {
+		return screens.OpenModalMsg{
+			Modal: modals.NewConfirm(
+				"Prune stopped containers",
+				fmt.Sprintf("This will permanently remove %d stopped container(s):", len(stopped)),
+				lines,
+				"prune",
+				m.palette,
+			),
+		}
+	}
+}
+
+// performPrune calls Apple's `container prune` (which removes stopped
+// containers) and surfaces the count plus a refreshed list.
+func (m *Model) performPrune() tea.Cmd {
+	client := m.client
+	return tea.Batch(
+		func() tea.Msg {
+			ctx := cli.DefaultCtx()
+			n, err := client.PruneContainers(ctx)
+			if err != nil {
+				return screens.StatusMsg{Toast: fmt.Sprintf("prune failed: %v", err)}
+			}
+			switch n {
+			case 0:
+				return screens.StatusMsg{Toast: "no containers were pruned"}
+			case 1:
+				return screens.StatusMsg{Toast: "pruned 1 container"}
+			default:
+				return screens.StatusMsg{Toast: fmt.Sprintf("pruned %d containers", n)}
+			}
+		},
+		state.MakeRefreshedCmd[cli.Container](
+			cli.DefaultCtx(),
+			func(ctx context.Context) ([]cli.Container, error) {
+				return client.ListContainers(ctx, true)
+			},
+			cli.ResourceContainers,
+		),
+	)
 }
 
 // handleFilterKey handles key input in filter mode.

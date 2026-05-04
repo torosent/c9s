@@ -111,6 +111,7 @@ c9s is keyboard-driven. Press `:` to open the command palette, then type any of 
 | `:load` | `<tar>` | Load image from a tar file |
 | `:login` | `<host>` | Open the registry login modal |
 | `:acr-login` | `<registry>` | Azure Container Registry login via Azure AD ([details](docs/screens/registry.md#azure-container-registry-acr)) |
+| `:prune` | — | Remove all stopped containers (with confirmation; also `Shift+P` on the containers screen) |
 
 ### Config & customization
 
