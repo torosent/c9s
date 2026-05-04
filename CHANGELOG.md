@@ -7,6 +7,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.4] - 2026-05-04
+
+### Added
+
+- **`Shift+P` / `:prune`** on the containers screen — removes all
+  stopped containers via Apple's `container prune`. Opens a confirm
+  modal listing the stopped containers (short-id, image, state tag) so
+  users can sanity-check before deleting; surfaces a clear status
+  toast and refreshes the list afterwards. If there are no stopped
+  containers, shows a "no stopped containers to prune" toast instead
+  of an empty modal.
+- **Help overlay now lists `sort` (`Shift+S`) and `screen_switch`
+  (`1-9, 0`).** Both bindings were already wired in `app.go` but not
+  registered in `keymap.Default()`, so `?` never showed them. Added
+  as catalog entries; functional dispatch is unchanged.
+
+### Fixed
+
+- **Containers table header / data column alignment.** Bubbles' default
+  `Header` style applies `Padding(0, 1)`; we had explicitly cleared
+  `Cell` padding (intentional, so per-cell backgrounds don't fight the
+  selected-row highlight) but left it inherited on `Header`. Each
+  header cell rendered 2 cols wider than its data cell — across the
+  7-column containers table that's +14 cols, enough to wrap the
+  header onto two lines and shift every label out of alignment with
+  the data column beneath at typical terminal widths. Now
+  `Padding(0, 0)` on both, with inter-column gap provided by the
+  leading-space prefix on every column title and value.
+- **Help-overlay column alignment.** The 2-column layout used
+  `%-40s  %s` to pad the *combined* "label + keys" string, so right-
+  side cells ended at variable columns depending on key-string length
+  (`[s]` vs `[shift+p, P]` is 9 chars apart). Rewrote to compute max
+  label/keys widths from the data and render
+  `padRight(label, maxL) + " " + padRight(keys, maxK)` with a fixed
+  separator; every right-side `[` now sits at a stable column.
+
 ## [0.1.3] - 2026-05-04
 
 ### Added
