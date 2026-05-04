@@ -13,6 +13,17 @@ import (
 // TableStyles returns a bubbles/table.Styles tree that paints every cell with
 // the given palette: header, cell, and selected row all match the skin so a
 // light theme renders consistently end-to-end.
+//
+// Both Header and Cell explicitly clear Padding. Bubbles' DefaultStyles
+// applies Padding(0, 1) to both — but headersView() and renderRow() each
+// pre-render their content to col.Width via lipgloss.NewStyle().Width().
+// When the outer Header style adds Padding(0, 1), the header cell becomes
+// col.Width + 2 wide while the data cell stays at col.Width, causing a
+// 14-col mismatch over the 7-column containers table that wraps the
+// header onto two lines and shifts header labels relative to data
+// columns. Stripping Padding on both sides keeps them aligned; we add
+// inter-column visual separation by prefixing every column title and
+// every row value with a single space at the call site.
 func TableStyles(p theme.Palette) table.Styles {
 	s := table.DefaultStyles()
 	s.Header = s.Header.
@@ -22,14 +33,16 @@ func TableStyles(p theme.Palette) table.Styles {
 		BorderBottom(true).
 		Foreground(p.Fg).
 		Background(p.Bg).
+		Padding(0, 0).
 		Bold(true)
-	// Cell style intentionally has NO Foreground or Background. bubbles/table
-	// wraps cell content with the cell style THEN the selected-row style. If
-	// we set Cell.Background, the per-cell bg "wins" against Selected.Render's
-	// outer bg — making the cursor row's selection invisible. Letting cells
-	// be unstyled means the body wrapper's palette.Bg/Fg shows through
-	// non-selected rows, and Selected.Render's Background(Accent) correctly
-	// paints the entire cursor row.
+	// Cell style intentionally has NO Foreground or Background (and no
+	// Padding). bubbles/table wraps cell content with the cell style THEN
+	// the selected-row style. If we set Cell.Background, the per-cell bg
+	// "wins" against Selected.Render's outer bg — making the cursor row's
+	// selection invisible. Letting cells be unstyled means the body
+	// wrapper's palette.Bg/Fg shows through non-selected rows, and
+	// Selected.Render's Background(Accent) correctly paints the entire
+	// cursor row.
 	s.Cell = lipgloss.NewStyle()
 	s.Selected = lipgloss.NewStyle().
 		Foreground(p.Bg).

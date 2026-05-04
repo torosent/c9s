@@ -798,6 +798,27 @@ func (m Model) runCommand(cmd string) (tea.Model, tea.Cmd) {
 		)
 		m.stack.Push(modal)
 		return m, modal.Init()
+
+	case "prune":
+		// :prune is contextual to the active screen. Today only the
+		// containers screen handles ConfirmResultMsg{Tag:"prune"}; on
+		// other screens we surface a hint rather than silently no-op.
+		if m.active != "containers" {
+			m.toast = ":prune currently only works on the containers screen"
+			return m, nil
+		}
+		// Forward a synthetic key event so the screen's existing prune
+		// keybinding handler fires the same confirm-modal flow as the
+		// Shift+P hotkey. This avoids duplicating the lookup logic here
+		// and keeps the screen as the single source of truth for what
+		// "prune" means in its context.
+		if scr, ok := m.screens["containers"]; ok {
+			newScr, cmd := scr.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'P'}})
+			m.screens["containers"] = newScr
+			return m, cmd
+		}
+		return m, nil
+
 	case "create":
 		modal := modals.NewTextInput("create", "Resource name to create:", arg, m.palette)
 		m.stack.Push(modal)

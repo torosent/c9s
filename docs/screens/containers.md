@@ -30,4 +30,5 @@ The home screen of c9s. Lists containers managed by Apples container runtime, re
 | ShiftK | Remove container |
 | ShiftR | Restart |
 | ShiftD | Delete with confirmation |
+| ShiftP | Prune all stopped containers (with confirmation; also `:prune`) |
 | p | Pause unpause greyed out |
