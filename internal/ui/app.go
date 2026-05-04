@@ -430,39 +430,35 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if msg.toast != "" {
 			m.toast = msg.toast
 		}
-		// Force a full altscreen repaint after exec returns. Three
-		// pieces in order:
-		//   1. tea.ClearScreen — emits \033[2J\033[H so the terminal
-		//      buffer is wiped (bubbletea's renderer also calls
-		//      repaint() in response, resetting its internal cell
-		//      tracking).
-		//   2. Synthetic WindowSizeMsg with the dims we already know
-		//      are correct (m.width/m.height haven't changed during
-		//      the exec). This propagates through every screen and
-		//      modal, causing each to recompute layout — crucially
-		//      it re-runs bubbles/table SetHeight which recomputes
-		//      the internal viewport. Without this, the table
-		//      sometimes renders only a single row after exec
-		//      because its viewport state is left in a degenerate
-		//      state by the suspend/resume cycle.
-		//   3. Re-Init the active screen so it dispatches a fresh
-		//      RefreshedMsg + arms a new TickCmd. Otherwise the
-		//      polling tick that fired during the suspend was
-		//      consumed without re-arming, and the auto-refresh
-		//      loop is dead until something else kicks it.
+		// Force a full altscreen rebuild after exec returns. After
+		// hours of trial — tea.ClearScreen alone, tea.WindowSize()
+		// (async), and synthetic WindowSizeMsg with known dims all
+		// failed to repaint cleanly in some terminals — the only
+		// thing that consistently works is toggling altscreen off
+		// then on. Bubbletea's RestoreTerminal calls
+		// renderer.enterAltScreen() unconditionally if altscreen was
+		// active, but that's idempotent — the altscreen is already
+		// active so it's a no-op. Forcing ExitAltScreen first makes
+		// the subsequent EnterAltScreen actually run the entry
+		// sequence (\033[?1049h) and reset the buffer.
+		//
+		// Sequence (not Batch) so the toggle and reflow run in
+		// strict order: exit → enter → reflow → re-init.
 		width, height := m.width, m.height
 		var initCmd tea.Cmd
 		if scr, ok := m.screens[m.active]; ok {
 			initCmd = scr.Init()
 		}
-		cmds := []tea.Cmd{
+		seq := []tea.Cmd{
+			func() tea.Msg { return tea.ExitAltScreen() },
+			func() tea.Msg { return tea.EnterAltScreen() },
 			func() tea.Msg { return tea.ClearScreen() },
 			func() tea.Msg { return tea.WindowSizeMsg{Width: width, Height: height} },
 		}
 		if initCmd != nil {
-			cmds = append(cmds, initCmd)
+			seq = append(seq, initCmd)
 		}
-		return m, tea.Batch(cmds...)
+		return m, tea.Sequence(seq...)
 
 	case screens.StatusMsg:
 		m.toast = msg.Toast
