@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"path/filepath"
 	"runtime/debug"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -13,6 +14,7 @@ import (
 	"github.com/torosent/c9s/internal/cli/demodata"
 	"github.com/torosent/c9s/internal/clock"
 	"github.com/torosent/c9s/internal/config"
+	"github.com/torosent/c9s/internal/dockershim"
 	"github.com/torosent/c9s/internal/ui"
 	"github.com/torosent/c9s/internal/ui/theme"
 	"github.com/torosent/c9s/internal/version"
@@ -31,6 +33,15 @@ func main() {
 			os.Exit(1)
 		}
 		fmt.Printf("Imported k9s skin to: %s\n", outPath)
+		return
+	}
+
+	if len(os.Args) > 1 && os.Args[1] == "install-docker-shim" {
+		runInstallDockerShim(os.Args[2:])
+		return
+	}
+	if len(os.Args) > 1 && os.Args[1] == "uninstall-docker-shim" {
+		runUninstallDockerShim(os.Args[2:])
 		return
 	}
 
@@ -90,4 +101,83 @@ func main() {
 		fmt.Fprintln(os.Stderr, "c9s:", err)
 		os.Exit(1)
 	}
+}
+
+func runInstallDockerShim(args []string) {
+	fs := flag.NewFlagSet("install-docker-shim", flag.ExitOnError)
+	path := fs.String("path", "", "where to write the shim (default: ~/.local/bin/docker)")
+	force := fs.Bool("force", false, "overwrite an existing file at the target path")
+	_ = fs.Parse(args)
+
+	target := *path
+	if target == "" {
+		def, err := dockershim.DefaultPath()
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "install-docker-shim: %v\n", err)
+			os.Exit(1)
+		}
+		target = def
+	}
+	// Resolve to absolute before reporting; relative --path values
+	// otherwise produce a misleading PATH-search hint.
+	if abs, err := filepath.Abs(target); err == nil {
+		target = abs
+	}
+
+	// Detect any existing docker so the user knows what the shim is
+	// going to compete with on PATH and which app might be running.
+	others, _ := dockershim.DetectExistingDocker(target)
+	if len(others) > 0 {
+		fmt.Fprintln(os.Stderr, "Warning: an existing docker binary is already on PATH:")
+		for _, p := range others {
+			fmt.Fprintf(os.Stderr, "  - %s\n", p)
+		}
+		fmt.Fprintln(os.Stderr, "After install, make sure the shim's directory is BEFORE")
+		fmt.Fprintln(os.Stderr, "the directory containing the existing docker on PATH, or")
+		fmt.Fprintln(os.Stderr, "the existing binary will continue to win.")
+		fmt.Fprintln(os.Stderr)
+	}
+	if dockershim.DockerDesktopInstalled() {
+		fmt.Fprintln(os.Stderr, "Warning: Docker Desktop is installed at /Applications/Docker.app.")
+		fmt.Fprintln(os.Stderr, "While Docker Desktop is running, the system docker daemon will")
+		fmt.Fprintln(os.Stderr, "still respond to whichever 'docker' binary your shell resolves")
+		fmt.Fprintln(os.Stderr, "first. The shim only redirects CLI calls to Apple containers; it")
+		fmt.Fprintln(os.Stderr, "doesn't affect Docker Desktop's running containers either way.")
+		fmt.Fprintln(os.Stderr)
+	}
+
+	if err := dockershim.Install(target, *force); err != nil {
+		fmt.Fprintf(os.Stderr, "install-docker-shim: %v\n", err)
+		os.Exit(1)
+	}
+	fmt.Printf("Installed c9s docker shim to: %s\n", target)
+	fmt.Println()
+	fmt.Println("Make sure the install directory is on PATH and shadows any real docker:")
+	fmt.Printf("  echo $PATH | tr ':' '\\n' | grep -F %q\n", filepath.Dir(target))
+	fmt.Println("If your shell caches command lookups, run `hash -r` (bash/zsh).")
+}
+
+func runUninstallDockerShim(args []string) {
+	fs := flag.NewFlagSet("uninstall-docker-shim", flag.ExitOnError)
+	path := fs.String("path", "", "shim path to remove (default: ~/.local/bin/docker)")
+	_ = fs.Parse(args)
+
+	target := *path
+	if target == "" {
+		def, err := dockershim.DefaultPath()
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "uninstall-docker-shim: %v\n", err)
+			os.Exit(1)
+		}
+		target = def
+	}
+	if abs, err := filepath.Abs(target); err == nil {
+		target = abs
+	}
+
+	if err := dockershim.Uninstall(target); err != nil {
+		fmt.Fprintf(os.Stderr, "uninstall-docker-shim: %v\n", err)
+		os.Exit(1)
+	}
+	fmt.Printf("Removed c9s docker shim at: %s\n", target)
 }

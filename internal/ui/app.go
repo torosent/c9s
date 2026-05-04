@@ -14,7 +14,9 @@ import (
 
 	"github.com/torosent/c9s/internal/cli"
 	"github.com/torosent/c9s/internal/clock"
+	"github.com/torosent/c9s/internal/cloud/acr"
 	"github.com/torosent/c9s/internal/config"
+	"github.com/torosent/c9s/internal/dockershim"
 	"github.com/torosent/c9s/internal/jobs"
 	"github.com/torosent/c9s/internal/log"
 	"github.com/torosent/c9s/internal/pinned"
@@ -76,6 +78,14 @@ type Model struct {
 
 type capabilitiesMsg struct {
 	caps cli.Capabilities
+	err  error
+}
+
+// acrLoginMsg is delivered after a `:acr-login` invocation completes,
+// carrying either an error (FetchToken or RegistryLogin failed) or
+// success (host is set, err is nil) so Update can render a toast.
+type acrLoginMsg struct {
+	host string
 	err  error
 }
 
@@ -223,6 +233,42 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.toast = "could not probe `container`: " + msg.err.Error()
 		}
 		return m, nil
+
+	case acrLoginMsg:
+		if msg.err != nil {
+			m.toast = fmt.Sprintf("acr-login %s failed", msg.host)
+			m.logError("registry.acr-login", msg.host, fmt.Sprintf("acr-login failed: %v", msg.err), msg.err.Error())
+			modal := modals.NewInfo(
+				fmt.Sprintf("ACR login failed: %s", msg.host),
+				[]string{
+					msg.err.Error(),
+					"",
+					"Common fixes:",
+					"  • Run `az login` first if Azure CLI isn't authenticated.",
+					"  • Verify the registry name (or pass full myreg.azurecr.io).",
+					"  • Check `az acr show --name <reg>` resolves the registry.",
+				},
+				modals.InfoError,
+				m.palette,
+			)
+			m.stack.Push(modal)
+			return m, modal.Init()
+		}
+		m.toast = fmt.Sprintf("logged in to %s", msg.host)
+		modal := modals.NewInfo(
+			"ACR login succeeded",
+			[]string{
+				fmt.Sprintf("Logged in to %s via Azure AD.", msg.host),
+				"",
+				"The token is stored by Apple's `container` for ~3 hours;",
+				"re-run `:acr-login` when it expires. Existing pulls and",
+				"pushes will use the credential automatically.",
+			},
+			modals.InfoOK,
+			m.palette,
+		)
+		m.stack.Push(modal)
+		return m, modal.Init()
 
 	case SplashDoneMsg:
 		m.showSplash = false
@@ -626,6 +672,130 @@ func (m Model) runCommand(cmd string) (tea.Model, tea.Cmd) {
 		return m, modal.Init()
 	case "login":
 		modal := modals.NewLogin(arg, m.palette)
+		m.stack.Push(modal)
+		return m, modal.Init()
+
+	case "acr-login":
+		if arg == "" {
+			m.toast = "usage: :acr-login <registry> · accepts 'myreg' or 'myreg.azurecr.io'"
+			return m, nil
+		}
+		host := acr.Hostname(arg)
+		m.toast = fmt.Sprintf("fetching ACR token for %s …", host)
+		client := m.client
+		registry := arg
+		return m, func() tea.Msg {
+			// 30 s covers slow `az` token-cache rehydration. If `az` would
+			// need to prompt the user for an interactive `az login`, that
+			// would exceed this and surface as a context-deadline error,
+			// telling the user to run `az login` first.
+			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+			defer cancel()
+			token, err := acr.FetchToken(ctx, registry)
+			if err != nil {
+				return acrLoginMsg{host: host, err: err}
+			}
+			if err := client.RegistryLogin(ctx, host, acr.AnonymousUser, token); err != nil {
+				return acrLoginMsg{host: host, err: fmt.Errorf("container registry login: %w", err)}
+			}
+			return acrLoginMsg{host: host}
+		}
+
+	case "install-docker-shim":
+		path := arg
+		if path == "" {
+			def, err := dockershim.DefaultPath()
+			if err != nil {
+				m.toast = fmt.Sprintf("install-docker-shim: %v", err)
+				return m, nil
+			}
+			path = def
+		}
+		// Resolve to absolute so the toast hint refers to a real
+		// directory the user can put on PATH.
+		if abs, err := filepath.Abs(path); err == nil {
+			path = abs
+		}
+		// Detect existing docker(s) so the modal can warn about PATH
+		// precedence in the same breath as reporting the install.
+		others, _ := dockershim.DetectExistingDocker(path)
+		if err := dockershim.Install(path, false); err != nil {
+			m.toast = "install-docker-shim failed"
+			m.logError("dockershim.install", path, fmt.Sprintf("install failed: %v", err), err.Error())
+			modal := modals.NewInfo(
+				"Docker shim install failed",
+				[]string{
+					err.Error(),
+					"",
+					"To overwrite an existing file, quit c9s and run:",
+					fmt.Sprintf("  c9s install-docker-shim --path %s --force", path),
+				},
+				modals.InfoError,
+				m.palette,
+			)
+			m.stack.Push(modal)
+			return m, modal.Init()
+		}
+		m.toast = fmt.Sprintf("docker shim installed → %s", path)
+		body := []string{
+			fmt.Sprintf("Wrote shim to: %s", path),
+			fmt.Sprintf("Make sure %s is on your PATH.", filepath.Dir(path)),
+			"If your shell caches command lookups, run `hash -r`.",
+		}
+		level := modals.InfoOK
+		if len(others) > 0 {
+			level = modals.InfoWarning
+			body = append(body, "", "Existing docker binaries detected on PATH:")
+			for _, p := range others {
+				body = append(body, "  • "+p)
+			}
+			body = append(body, "Ensure the shim's directory is BEFORE these on PATH or",
+				"the existing binary will continue to win.")
+		}
+		if dockershim.DockerDesktopInstalled() {
+			if level == modals.InfoOK {
+				level = modals.InfoWarning
+			}
+			body = append(body, "", "Docker Desktop is installed at /Applications/Docker.app.",
+				"Its bin directory may also be on PATH; check `which docker`",
+				"after restarting your shell.")
+		}
+		modal := modals.NewInfo("Docker shim installed", body, level, m.palette)
+		m.stack.Push(modal)
+		return m, modal.Init()
+
+	case "uninstall-docker-shim":
+		path := arg
+		if path == "" {
+			def, err := dockershim.DefaultPath()
+			if err != nil {
+				m.toast = fmt.Sprintf("uninstall-docker-shim: %v", err)
+				return m, nil
+			}
+			path = def
+		}
+		if abs, err := filepath.Abs(path); err == nil {
+			path = abs
+		}
+		if err := dockershim.Uninstall(path); err != nil {
+			m.toast = "uninstall-docker-shim failed"
+			m.logError("dockershim.uninstall", path, fmt.Sprintf("uninstall failed: %v", err), err.Error())
+			modal := modals.NewInfo(
+				"Docker shim uninstall failed",
+				[]string{err.Error()},
+				modals.InfoError,
+				m.palette,
+			)
+			m.stack.Push(modal)
+			return m, modal.Init()
+		}
+		m.toast = fmt.Sprintf("docker shim removed → %s", path)
+		modal := modals.NewInfo(
+			"Docker shim removed",
+			[]string{fmt.Sprintf("Removed: %s", path)},
+			modals.InfoOK,
+			m.palette,
+		)
 		m.stack.Push(modal)
 		return m, modal.Init()
 	case "create":

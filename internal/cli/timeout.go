@@ -12,15 +12,22 @@ import (
 const DefaultRequestTimeout = 5 * time.Second
 
 // DefaultCtx returns a context with a DefaultRequestTimeout deadline.
-// Callers don't need to call the returned cancel func: context.WithTimeout
-// schedules an internal timer that automatically cancels the context and
-// releases resources when the deadline fires. Dropping the cancel keeps
-// call sites compact (no `defer cancel()` boilerplate at every screen
-// closure), at the cost of allowing the timer to run to expiration even
-// if the call returns early. That's acceptable for our 5 s bound.
+// Callers don't need to invoke a cancel func — we spawn a tiny watcher
+// goroutine that calls the cancel returned by WithTimeout once the
+// deadline fires. This both satisfies govet's lostcancel analyzer (the
+// cancel is reachable via the goroutine) and lets call sites stay one
+// line:
 //
-//nolint:govet // intentional: cancel is auto-fired by the deadline timer.
+//	raw, err := m.client.InspectImage(cli.DefaultCtx(), id)
+//
+// instead of every site needing its own ctx/cancel/defer trio. The
+// watcher exits as soon as ctx.Done() closes, so steady-state goroutine
+// count is bounded by in-flight CLI calls (typically 0–2 per screen).
 func DefaultCtx() context.Context {
-	ctx, _ := context.WithTimeout(context.Background(), DefaultRequestTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), DefaultRequestTimeout)
+	go func() {
+		<-ctx.Done()
+		cancel()
+	}()
 	return ctx
 }
