@@ -7,6 +7,46 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.3] - 2026-05-04
+
+### Added
+
+- **`:acr-login <registry>` palette command.** One-step Azure Container
+  Registry login that wraps the Microsoft-recommended AAD-token recipe:
+  shells out to `az acr login --expose-token`, then pipes the token
+  into `container registry login` as the zero-GUID anonymous user via
+  `--password-stdin`. Accepts either bare names (`myreg`) or full
+  hostnames (`myreg.azurecr.io`); sovereign clouds (`*.azurecr.us`,
+  `*.azurecr.cn`) preserved. Failure cases include `az` not on PATH,
+  empty tokens, and `az acr login` errors — all surfaced via a new
+  dismissable info modal with concrete remediation hints.
+- **Docker compatibility shim** — a POSIX bash script that maps the
+  most common `docker(1)` verbs to their Apple `container` CLI
+  equivalents. Install via `c9s install-docker-shim` (defaults to
+  `~/.local/bin/docker`) or the `:install-docker-shim` palette
+  command; uninstall is sentinel-protected so it can't accidentally
+  delete a real docker binary. The shim translates
+  `ps`/`images`/`rm`/`rmi`/`pull`/`push`/`tag`/`volume ls`/`network ls`/
+  `login`/`logout`/`info` and falls through unhandled verbs. See
+  `docs/docker-shim.md`.
+- **Existing-docker detection.** Before installing the shim, c9s walks
+  PATH and reports any pre-existing `docker` executables (in PATH
+  order) plus whether Docker Desktop is installed at
+  `/Applications/Docker.app`, so users know exactly what they're
+  competing with.
+- **Dismissable info modal** (`modals.NewInfo`) with OK/Warning/Error
+  levels — used by `:acr-login` and `:install/uninstall-docker-shim`
+  for clear, non-truncated result feedback.
+- **`acr-login`/`install-docker-shim`/`uninstall-docker-shim`** entries
+  in the palette catalog so Tab autocomplete surfaces them.
+
+### Fixed
+
+- `cli.DefaultCtx` no longer trips `go vet`'s lostcancel analyzer. A
+  one-line watcher goroutine calls the cancel returned by WithTimeout
+  when the deadline fires, satisfying the analyzer while keeping call
+  sites at the one-arg form they had after the v0.1.1 timeout audit.
+
 ## [0.1.2] - 2026-05-03
 
 ### Changed
