@@ -430,19 +430,39 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if msg.toast != "" {
 			m.toast = msg.toast
 		}
-		// Force a full altscreen repaint after exec returns.
-		// tea.WindowSize() alone isn't enough — bubbletea's renderer
-		// preserves cells it thinks are unchanged, but altscreen
-		// state is corrupt because the shell ran with stdout writing
-		// to the host terminal during the suspend. Issue
-		// tea.ClearScreen first (which emits \033[2J\033[H) and then
-		// re-query the window size so every screen reflows. Without
-		// this, the post-exit frame can show leftover shell output
-		// and stale modal cells.
-		return m, tea.Batch(
+		// Force a full altscreen repaint after exec returns. Three
+		// pieces in order:
+		//   1. tea.ClearScreen — emits \033[2J\033[H so the terminal
+		//      buffer is wiped (bubbletea's renderer also calls
+		//      repaint() in response, resetting its internal cell
+		//      tracking).
+		//   2. Synthetic WindowSizeMsg with the dims we already know
+		//      are correct (m.width/m.height haven't changed during
+		//      the exec). This propagates through every screen and
+		//      modal, causing each to recompute layout — crucially
+		//      it re-runs bubbles/table SetHeight which recomputes
+		//      the internal viewport. Without this, the table
+		//      sometimes renders only a single row after exec
+		//      because its viewport state is left in a degenerate
+		//      state by the suspend/resume cycle.
+		//   3. Re-Init the active screen so it dispatches a fresh
+		//      RefreshedMsg + arms a new TickCmd. Otherwise the
+		//      polling tick that fired during the suspend was
+		//      consumed without re-arming, and the auto-refresh
+		//      loop is dead until something else kicks it.
+		width, height := m.width, m.height
+		var initCmd tea.Cmd
+		if scr, ok := m.screens[m.active]; ok {
+			initCmd = scr.Init()
+		}
+		cmds := []tea.Cmd{
 			func() tea.Msg { return tea.ClearScreen() },
-			tea.WindowSize(),
-		)
+			func() tea.Msg { return tea.WindowSizeMsg{Width: width, Height: height} },
+		}
+		if initCmd != nil {
+			cmds = append(cmds, initCmd)
+		}
+		return m, tea.Batch(cmds...)
 
 	case screens.StatusMsg:
 		m.toast = msg.Toast
