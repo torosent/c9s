@@ -11,6 +11,18 @@ brew install vhs ttyd
 make build
 ```
 
+## Render the README demo
+
+```bash
+brew install vhs ttyd     # one-time
+make build                # produces ./bin/c9s
+vhs tools/demos/c9s.tape  # writes docs/assets/c9s.gif
+```
+
+The tape uses the `GruvboxDark` VHS theme (and a matching terminal background) so the recording harmonises with c9s's default `k9s-gruvbox-dark` skin — no skin switching during the demo, single dark theme throughout.
+
+If the `:acr-login myregistry` step in the tape produces a different error than expected (e.g. `az` is not installed), the resulting `InfoModal` body will differ from a previous render but the user-visible flow is the same. Re-render any time you ship a feature you want surfaced in the README; the tape lives at `tools/demos/c9s.tape` and is the single source of truth for what the README GIF shows.
+
 ## Render all tapes
 
 ```bash
