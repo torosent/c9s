@@ -2,7 +2,6 @@ package containers
 
 import (
 	"context"
-	"os"
 	"strings"
 	"testing"
 	"time"
@@ -11,6 +10,7 @@ import (
 	"github.com/torosent/c9s/internal/cli"
 	"github.com/torosent/c9s/internal/clock"
 	"github.com/torosent/c9s/internal/state"
+	"github.com/torosent/c9s/internal/ui/modals"
 	"github.com/torosent/c9s/internal/ui/screens"
 	"github.com/torosent/c9s/internal/ui/theme"
 )
@@ -353,52 +353,72 @@ func calledOnce(calls []string, want string) bool {
 	return false
 }
 
-func TestContainersSEmitsSuspendShellMsg(t *testing.T) {
+// TestContainersSOpensShellPicker — pressing 's' on a running
+// container now opens the shell-picker modal rather than emitting a
+// SuspendShellMsg directly. The picker decides between bash and sh,
+// since the host's $SHELL (often /bin/zsh on macOS) is rarely present
+// inside Linux containers.
+func TestContainersSOpensShellPicker(t *testing.T) {
 	fake := &cli.Fake{
 		ListContainersResp: []cli.Container{
-			{ID: "c1", ShortID: "c1", Image: "nginx", Status: "running"},
+			{ID: "c1running", ShortID: "c1running", Image: "nginx", Status: "running"},
 		},
 	}
-	clk := clock.NewFake(time.Now())
-	p := theme.DefaultDark()
-
-	m := New(fake, clk, p)
+	m := New(fake, clock.NewFake(time.Now()), theme.DefaultDark())
 	m.Init()
-
-	snapshot := state.Snapshot[cli.Container]{
-		Items:     fake.ListContainersResp,
-		FetchedAt: time.Now(),
-	}
-	msg := state.RefreshedMsg[cli.Container]{
+	s, _ := m.Update(state.RefreshedMsg[cli.Container]{
 		Resource: cli.ResourceContainers,
-		Snapshot: snapshot,
-	}
-	s, _ := m.Update(msg)
+		Snapshot: state.Snapshot[cli.Container]{Items: fake.ListContainersResp, FetchedAt: time.Now()},
+	})
 	m = assertModel(s)
 
-	// Press 's' to open shell
-	keyMsg := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'s'}}
-	_, cmd := m.Update(keyMsg)
-
+	_, cmd := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'s'}})
 	if cmd == nil {
-		t.Fatal("expected 's' key to return a cmd")
+		t.Fatal("expected 's' to return a cmd")
 	}
+	switch out := cmd().(type) {
+	case screens.OpenModalMsg:
+		if _, ok := out.Modal.(modals.ShellPickerModel); !ok {
+			t.Errorf("expected ShellPickerModel, got %T", out.Modal)
+		}
+	case screens.SuspendShellMsg:
+		t.Fatalf("expected OpenModalMsg(ShellPickerModel), got SuspendShellMsg — picker bypassed")
+	default:
+		t.Fatalf("expected OpenModalMsg, got %T", out)
+	}
+}
 
-	cmdMsg := cmd()
-	if suspendMsg, ok := cmdMsg.(screens.SuspendShellMsg); !ok {
-		t.Errorf("expected SuspendShellMsg, got %T", cmdMsg)
-	} else {
-		if suspendMsg.ID != "c1" {
-			t.Errorf("expected ID='c1', got %q", suspendMsg.ID)
-		}
-		// Shell should be from SHELL env or default /bin/sh
-		expectedShell := os.Getenv("SHELL")
-		if expectedShell == "" {
-			expectedShell = "/bin/sh"
-		}
-		if suspendMsg.Shell != expectedShell {
-			t.Errorf("expected Shell=%q, got %q", expectedShell, suspendMsg.Shell)
-		}
+// TestContainersShellPickedConvertsToSuspend — once the user picks a
+// shell, the modal emits ShellPickedMsg; the containers screen
+// converts that to SuspendShellMsg for the app-level ExecProcess
+// handler.
+func TestContainersShellPickedConvertsToSuspend(t *testing.T) {
+	fake := &cli.Fake{
+		ListContainersResp: []cli.Container{
+			{ID: "c1pick", ShortID: "c1pick", Image: "nginx", Status: "running"},
+		},
+	}
+	m := New(fake, clock.NewFake(time.Now()), theme.DefaultDark())
+	m.Init()
+	s, _ := m.Update(state.RefreshedMsg[cli.Container]{
+		Resource: cli.ResourceContainers,
+		Snapshot: state.Snapshot[cli.Container]{Items: fake.ListContainersResp, FetchedAt: time.Now()},
+	})
+	m = assertModel(s)
+
+	_, cmd := m.Update(modals.ShellPickedMsg{ID: "c1pick", Shell: "/bin/bash"})
+	if cmd == nil {
+		t.Fatal("expected ShellPickedMsg to return a cmd")
+	}
+	suspendMsg, ok := cmd().(screens.SuspendShellMsg)
+	if !ok {
+		t.Fatalf("expected SuspendShellMsg, got %T", cmd())
+	}
+	if suspendMsg.ID != "c1pick" {
+		t.Errorf("ID = %q, want c1pick", suspendMsg.ID)
+	}
+	if suspendMsg.Shell != "/bin/bash" {
+		t.Errorf("Shell = %q, want /bin/bash", suspendMsg.Shell)
 	}
 }
 

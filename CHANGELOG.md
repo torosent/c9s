@@ -7,8 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Shell picker modal** — `s` on a running container now opens a
+  small modal asking whether to use `/bin/bash` or `/bin/sh` rather
+  than blindly using the host's `$SHELL`. The host shell (often
+  `/bin/zsh` on macOS) is rarely present inside Linux containers,
+  and Apple's `container` returns exit 0 even when exec fails, so a
+  missing shell would silently leave the user staring at a glitched
+  half-rendered TUI. Press `b`/`s` for a one-keystroke pick or use
+  arrow keys + Enter.
+
 ### Fixed
 
+- **Glitched TUI after `tea.ExecProcess` returns.** After the user
+  exited an in-container shell, the next altscreen frame sometimes
+  rendered on top of stale cells and left the screen looking
+  half-drawn (truncated table + leftover JSON visible). The
+  `SuspendShellMsg` handler now returns `tea.WindowSize()` after
+  exec, forcing every screen and the open modal (if any) to reflow
+  against the real terminal size and repaint the full altscreen.
 - **`x` (stop), `Shift+K` (kill), `Shift+R` (restart), and `p` (pause)
   now refresh the table immediately.** Previously they relied on the
   2-second poll tick, so the user pressed `x` to stop a container and

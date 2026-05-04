@@ -3,7 +3,6 @@ package containers
 import (
 	"context"
 	"fmt"
-	"os"
 	"sort"
 	"strings"
 	"time"
@@ -172,6 +171,16 @@ func (m *Model) Update(msg tea.Msg) (screens.Screen, tea.Cmd) {
 		case "prune":
 			cmds = append(cmds, m.performPrune())
 		}
+
+	case modals.ShellPickedMsg:
+		// The shell picker has resolved which shell the user wants;
+		// hand it off to the app-level SuspendShellMsg handler that
+		// owns tea.ExecProcess.
+		id := msg.ID
+		shell := msg.Shell
+		cmds = append(cmds, func() tea.Msg {
+			return screens.SuspendShellMsg{ID: id, Shell: shell}
+		})
 
 	case state.RefreshedMsg[cli.Container]:
 		if msg.Resource != cli.ResourceContainers {
@@ -690,10 +699,13 @@ func (m *Model) refreshContainersCmd() tea.Cmd {
 	)
 }
 
-// openShell emits a SuspendShellMsg for the focused container. Refuses
-// (with a toast) to exec into a non-running container — `container
-// exec -it` exits immediately on a stopped container, leaving the user
-// staring at the same screen with no feedback.
+// openShell opens the shell-picker modal for the focused container.
+// We deliberately do NOT honour the host's $SHELL — the user's host
+// shell (often /bin/zsh on macOS) is rarely present inside Linux
+// containers, and `container exec -it <id> /bin/zsh` fails silently
+// (Apple's `container` returns exit 0 even on failure). The picker
+// asks the user to pick bash or sh; the result comes back as a
+// modals.ShellPickedMsg which we convert to a SuspendShellMsg.
 func (m *Model) openShell() tea.Cmd {
 	c := m.focusedContainer()
 	if c == nil {
@@ -708,15 +720,12 @@ func (m *Model) openShell() tea.Cmd {
 		}
 	}
 
-	shell := os.Getenv("SHELL")
-	if shell == "" {
-		shell = "/bin/sh"
-	}
-
+	id := c.ID
+	short := formatShortID(c.ID)
+	palette := m.palette
 	return func() tea.Msg {
-		return screens.SuspendShellMsg{
-			ID:    c.ID,
-			Shell: shell,
+		return screens.OpenModalMsg{
+			Modal: modals.NewShellPicker(id, short, palette),
 		}
 	}
 }

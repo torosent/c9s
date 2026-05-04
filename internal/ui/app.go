@@ -89,6 +89,15 @@ type acrLoginMsg struct {
 	err  error
 }
 
+// shellExecDoneMsg is emitted after tea.ExecProcess returns from a
+// SuspendShellMsg. Carries an optional toast (set when the exec
+// failed) and triggers a fresh WindowSizeMsg so altscreen is fully
+// repainted — without that, the post-exec frame can render on top of
+// stale cells and leave the screen looking glitched.
+type shellExecDoneMsg struct {
+	toast string
+}
+
 // NewApp constructs the root model.
 func NewApp(client cli.Client, clk clock.Clock, p theme.Palette, cfg config.Config) Model {
 	// Set up data directories
@@ -361,25 +370,43 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, modal.Init()
 
 	case screens.SuspendShellMsg:
-		// Surface ExecProcess errors as a toast so the user gets
-		// feedback when `container exec -it <id> <shell>` fails (e.g.,
-		// container raced into a stopped state, or the image has no
-		// /bin/sh). Without this the TUI just silently resumes after
-		// an instant exec failure and the user thinks 's' is broken.
+		// Run `container exec -it <id> <shell>` via tea.ExecProcess
+		// (which exits altscreen, runs the child, then re-enters
+		// altscreen). Force a window-size re-query when the process
+		// exits — without it, the next altscreen frame is sometimes
+		// drawn on top of the just-cleared terminal with old rows
+		// missing, leaving the screen looking glitched (issue
+		// reported: half-rendered table + leftover JSON visible
+		// after pressing 's'). Surfacing exec errors as a toast also
+		// gives the user feedback if the shell fails.
 		//
-		// #nosec G204 -- ID/Shell originate from internal CLI snapshots and the screen's caps probe, not user-supplied strings; binary path is the configured cli.Client.Bin().
+		// #nosec G204 -- ID/Shell originate from internal CLI snapshots and the modal's static option list (/bin/bash | /bin/sh), not user-supplied strings; binary path is the configured cli.Client.Bin().
 		execCmd := exec.Command(m.client.Bin(), "exec", "-it", msg.ID, msg.Shell)
 		shortID := msg.ID
 		if len(shortID) > 12 {
 			shortID = shortID[:12]
 		}
-		cmd := tea.ExecProcess(execCmd, func(err error) tea.Msg {
+		var toast string
+		execDone := tea.ExecProcess(execCmd, func(err error) tea.Msg {
 			if err != nil {
-				return screens.StatusMsg{Toast: fmt.Sprintf("shell %s failed: %v", shortID, err)}
+				toast = fmt.Sprintf("shell %s failed: %v", shortID, err)
 			}
-			return nil
+			// Returning a typed sentinel so the redraw + toast logic
+			// runs in the same Update cycle, after altscreen is
+			// re-entered.
+			return shellExecDoneMsg{toast: toast}
 		})
-		return m, cmd
+		return m, execDone
+
+	case shellExecDoneMsg:
+		if msg.toast != "" {
+			m.toast = msg.toast
+		}
+		// Force a fresh WindowSizeMsg so every screen and the open
+		// modal (if any) reflows against the real terminal size,
+		// repainting the full altscreen rather than only the cells
+		// that happened to differ from the pre-exec frame.
+		return m, tea.WindowSize()
 
 	case screens.StatusMsg:
 		m.toast = msg.Toast
