@@ -215,6 +215,18 @@ func Default() *Map {
 		Description: "Interrupt operation",
 	})
 
+	m.Add("sort", Binding{
+		Keys:        []string{"shift+s", "S"},
+		Help:        "sort",
+		Description: "Open the column sort picker (sortable screens)",
+	})
+
+	m.Add("screen_switch", Binding{
+		Keys:        []string{"1-9", "0"},
+		Help:        "switch screen",
+		Description: "Quick-switch (1 containers · 2 images · 3 volumes · 4 networks · 5 builder · 6 registry · 7 system · 8 pulses · 9 xray · 0 pinned)",
+	})
+
 	return m
 }
 

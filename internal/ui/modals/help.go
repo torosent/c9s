@@ -51,39 +51,65 @@ func (m HelpModel) View(width, height int) string {
 	content.WriteString(title)
 	content.WriteString("\n\n")
 
-	// Get all bindings
+	// Build [(label, keys)] entries in stable name-sorted order so help
+	// stays predictable across runs and does not jitter between screens.
 	names := m.keymap.Names()
+	type entry struct{ label, keys string }
+	entries := make([]entry, 0, len(names))
+	for _, n := range names {
+		b, ok := m.keymap.Get(n)
+		if !ok {
+			continue
+		}
+		entries = append(entries, entry{label: b.Help, keys: formatKeys(b.Keys)})
+	}
 
-	// Determine layout based on width
-	useTwoColumns := width >= 80
+	// Compute column widths from data so labels and key strings each have
+	// a stable left edge regardless of which screen is active.
+	maxLabel, maxKeys := 0, 0
+	for _, e := range entries {
+		if l := visibleLen(e.label); l > maxLabel {
+			maxLabel = l
+		}
+		if l := visibleLen(e.keys); l > maxKeys {
+			maxKeys = l
+		}
+	}
+	const labelKeyGap = 2
+	const colSep = 4
+	pairW := maxLabel + labelKeyGap + maxKeys
+	totalTwoColW := pairW + colSep + pairW
 
-	if useTwoColumns {
-		// Two column layout
-		midpoint := (len(names) + 1) / 2
-		leftCol := names[:midpoint]
-		rightCol := names[midpoint:]
+	// Two columns when there's room; otherwise one. Account for the
+	// rounded border + padding (4 cols) added by the box style below.
+	useTwoCols := width-4 >= totalTwoColW
 
-		for i := 0; i < midpoint; i++ {
-			// Left column
-			name := leftCol[i]
-			b, _ := m.keymap.Get(name)
-			left := fmt.Sprintf("%-30s %s", b.Help, formatKeys(b.Keys))
+	renderRow := func(e entry) string {
+		return padRight(e.label, maxLabel) + strings.Repeat(" ", labelKeyGap) + padRight(e.keys, maxKeys)
+	}
 
-			// Right column (if available)
-			right := ""
-			if i < len(rightCol) {
-				name := rightCol[i]
-				b, _ := m.keymap.Get(name)
-				right = fmt.Sprintf("%-30s %s", b.Help, formatKeys(b.Keys))
+	if useTwoCols {
+		mid := (len(entries) + 1) / 2
+		left := entries[:mid]
+		right := entries[mid:]
+		gap := strings.Repeat(" ", colSep)
+		for i := 0; i < mid; i++ {
+			l := renderRow(left[i])
+			r := ""
+			if i < len(right) {
+				r = renderRow(right[i])
 			}
-
-			content.WriteString(fmt.Sprintf("%-40s  %s\n", left, right))
+			content.WriteString(l)
+			if r != "" {
+				content.WriteString(gap)
+				content.WriteString(r)
+			}
+			content.WriteString("\n")
 		}
 	} else {
-		// Single column layout
-		for _, name := range names {
-			b, _ := m.keymap.Get(name)
-			content.WriteString(fmt.Sprintf("%-30s %s\n", b.Help, formatKeys(b.Keys)))
+		for _, e := range entries {
+			content.WriteString(renderRow(e))
+			content.WriteString("\n")
 		}
 	}
 
@@ -112,4 +138,20 @@ func formatKeys(keys []string) string {
 		return ""
 	}
 	return "[" + strings.Join(keys, ", ") + "]"
+}
+
+// visibleLen returns the visible-rune count of s. It's intentionally
+// simple — help labels and keys are ASCII / common punctuation, so a
+// rune count matches the on-screen column count.
+func visibleLen(s string) int {
+	return len([]rune(s))
+}
+
+// padRight returns s padded with trailing spaces so its visible length
+// equals at least n columns.
+func padRight(s string, n int) string {
+	if l := visibleLen(s); l < n {
+		return s + strings.Repeat(" ", n-l)
+	}
+	return s
 }
