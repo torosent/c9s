@@ -12,7 +12,8 @@ A k9s-style terminal UI for managing [Apple's `container` runtime](https://githu
 - 📜 **Multi-source log streaming** with ring buffer, follow-tail, save, and level coloring
 - 🔨 **Background jobs** for builds, pulls, pushes — `Ctrl+Z` detach, `:jobs` re-attach
 - 🖱️ **Mouse support** (click row, click header to sort, scroll wheel)
-- 📊 **k9s parity** — `:pulses` dashboard, `:xray` resource graph, `:pinned`, `:errors`
+- 🐳 **Docker compatibility shim** — `:install-docker-shim` installs a `docker` wrapper that maps Docker CLI calls onto Apple's `container`, so existing scripts and tools keep working
+- ☁️ **Azure Container Registry login** — `:acr-login` runs `az acr login --expose-token` and stores the credential in Apple's `container` for ~3 hours so subsequent pulls and pushes just work
 - 🛡️ **Read-only mode** — `--readonly` hides destructive bindings
 
 ## Requirements
