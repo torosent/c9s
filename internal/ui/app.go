@@ -453,17 +453,35 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if msg.toast != "" {
 			m.toast = msg.toast
 		}
-		// With bodyRegionHeight() now correctly sizing the screen,
-		// View() returns exactly m.height lines and bubbletea's
-		// RestoreTerminal (called by tea.ExecProcess after the shell
-		// exits) handles altscreen re-entry and repaint. No extra
-		// Cmds are needed — but we do refresh the active screen so
-		// the polling tick consumed during the suspend is rearmed
-		// and the user sees fresh data.
+		// Bubbletea's RestoreTerminal (called by tea.ExecProcess) is
+		// supposed to repaint the altscreen, but in practice the
+		// renderer's lastRenderedLines diff cache survives the
+		// suspend/resume cycle and the next flush ends up writing
+		// only a handful of lines that "differ" from the stale
+		// cache — leaving most of the screen blank or showing the
+		// pre-exec frame. We have to force a true repaint
+		// ourselves.
+		//
+		// tea.ClearScreen issues \033[2J\033[H on the wire AND
+		// triggers renderer.repaint() which clears lastRender +
+		// lastRenderedLines. Pair it with a fresh synthetic
+		// WindowSizeMsg (so the active screen and any open modal
+		// reflow against bodyRegionHeight) and a short Tick to give
+		// the renderer goroutine a beat to flush against the
+		// repainted state. tea.Sequence enforces the order.
+		width, height := m.width, m.height
+		var initCmd tea.Cmd
 		if scr, ok := m.screens[m.active]; ok {
-			return m, scr.Init()
+			initCmd = scr.Init()
 		}
-		return m, nil
+		seq := []tea.Cmd{
+			func() tea.Msg { return tea.ClearScreen() },
+			func() tea.Msg { return tea.WindowSizeMsg{Width: width, Height: height} },
+		}
+		if initCmd != nil {
+			seq = append(seq, initCmd)
+		}
+		return m, tea.Sequence(seq...)
 
 	case screens.StatusMsg:
 		m.toast = msg.Toast
