@@ -34,7 +34,7 @@ const AnonymousUser = "00000000-0000-0000-0000-000000000000"
 
 // ErrAzCLINotFound is returned when `az` is not on PATH. The error
 // includes a hint pointing at the Microsoft install docs.
-var ErrAzCLINotFound = errors.New("Azure CLI (az) not found on PATH; install from https://learn.microsoft.com/cli/azure/install-azure-cli")
+var ErrAzCLINotFound = errors.New("azure CLI (az) not found on PATH; install from https://learn.microsoft.com/cli/azure/install-azure-cli")
 
 // lookPath is a swappable indirection over exec.LookPath so unit tests
 // can simulate a missing `az` binary.
