@@ -1,12 +1,14 @@
 name: GitHub Pages
 
-# NOTE: GitHub Pages on private repos requires GitHub Enterprise. While the
-# c9s repository is private, this workflow is manual-only so it doesn't fail
-# on every push. To deploy the docs site:
-#  1. Either make the repo public (and the schedule below will deploy on push), OR
-#  2. Run on GitHub Enterprise with Pages enabled, AND
-#  3. Trigger this workflow manually via the Actions tab.
+# Deploys the mkdocs-material site at https://torosent.github.io/c9s
+# on every push to main, plus manual workflow_dispatch for ad-hoc redeploys.
 on:
+  push:
+    branches: [main]
+    paths:
+      - "docs/**"
+      - "mkdocs.yml"
+      - ".github/workflows/pages.yml"
   workflow_dispatch:
 
 permissions:
@@ -41,8 +43,6 @@ jobs:
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
-        with:
-          enablement: true
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3

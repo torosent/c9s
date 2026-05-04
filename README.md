@@ -61,6 +61,83 @@ After building, launch:
 
 You'll land on the **containers** screen. Press `?` to see the keybinds. Type `:q` and Enter (or press `Ctrl+C`) to quit.
 
+## Commands
+
+c9s is keyboard-driven. Press `:` to open the command palette, then type any of the commands below (Tab autocompletes). All commands live in `internal/ui/palette/catalog.go` if you want the canonical list.
+
+### Switch screens
+
+| Command | Alias | What it does |
+|---|---|---|
+| `:containers` | `:c` | Container list (default screen) |
+| `:images` | `:i` | Image list |
+| `:volumes` | `:v` | Volume list |
+| `:networks` | `:n` | Network list |
+| `:builder` | `:b` | Builder status |
+| `:registry` | `:reg` | Configured registry logins |
+| `:system` | `:sys` | System services overview |
+
+### System sub-screens
+
+| Command | What it does |
+|---|---|
+| `:df` | Disk usage breakdown |
+| `:dns` | DNS domains (CRUD) |
+| `:property` | System properties (edit / reset) |
+| `:kernel` | Kernel-only properties (read-only viewport) |
+| `:logs` | Live `container system logs --follow` |
+
+### k9s parity
+
+| Command | What it does |
+|---|---|
+| `:pulses` | Live health dashboard |
+| `:xray` | Resource relationships tree |
+| `:jobs` | Background streaming jobs (build / pull / push) |
+| `:pinned` | Bookmarked resources |
+| `:errors` | Error log viewer |
+
+### Actions
+
+| Command | Args | What it does |
+|---|---|---|
+| `:run` | `<image>` | Launch a new container (run modal) |
+| `:build` | `<path>` | Build an image from a directory |
+| `:pull` | `<ref>` | Pull image from registry |
+| `:push` | `<ref>` | Push image to registry |
+| `:create` | `<name>` | Create resource on the active screen |
+| `:tag` | `<src> <dst>` | Tag an image |
+| `:save` | `<ref> <tar>` | Save image to a tar file |
+| `:load` | `<tar>` | Load image from a tar file |
+| `:login` | `<host>` | Open the registry login modal |
+| `:acr-login` | `<registry>` | Azure Container Registry login via Azure AD ([details](docs/screens/registry.md#azure-container-registry-acr)) |
+
+### Config & customization
+
+| Command | Args | What it does |
+|---|---|---|
+| `:skin` | `<name>` | Switch to a TOML skin (try `:skins` to list) |
+| `:skins` | — | Open an interactive skin picker |
+| `:import-skin` | `<path>` | Import a k9s YAML skin |
+| `:install-docker-shim` | `[path]` | Install a `docker → container` compatibility shim ([details](docs/docker-shim.md)) |
+| `:uninstall-docker-shim` | `[path]` | Remove the c9s docker shim |
+
+### Meta
+
+| Command | Alias | What it does |
+|---|---|---|
+| `:help` | `:?` | Show help overlay for the active screen |
+| `:quit` | `:q`, `:exit` | Quit c9s |
+
+`c9s` also exposes two sibling subcommands of its own (i.e. you run them in your shell, not inside the TUI):
+
+```bash
+c9s --version
+c9s import-skin <path/to/k9s-skin.yaml>      # import a k9s skin
+c9s install-docker-shim [--path P] [--force] # install docker→container shim
+c9s uninstall-docker-shim [--path P]         # remove the shim
+```
+
 ## Development
 
 ```bash
