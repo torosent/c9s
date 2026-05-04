@@ -322,6 +322,23 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		return m, nil
 
+	case modals.ShellPickedMsg:
+		// The shell-picker modal batches ShellPickedMsg alongside
+		// CloseModalMsg, but tea.Batch makes no ordering guarantees.
+		// If we let this fall through to the catch-all routing
+		// below, the message races CloseModalMsg: when ShellPickedMsg
+		// arrives first the picker is still on the stack, the modal
+		// receives the message, doesn't handle it, and the pick is
+		// silently dropped — exactly the "I clicked bash and nothing
+		// happened" symptom. Forward directly to the active screen,
+		// matching the ConfirmResultMsg pattern above.
+		if scr, ok := m.screens[m.active]; ok {
+			newScr, cmd := scr.Update(msg)
+			m.screens[m.active] = newScr
+			return m, cmd
+		}
+		return m, nil
+
 	case modals.LoginResultMsg, modals.LoginCancelledMsg,
 		modals.TextInputResultMsg, modals.TextInputCancelledMsg:
 		if scr, ok := m.screens[m.active]; ok {
@@ -370,30 +387,41 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, modal.Init()
 
 	case screens.SuspendShellMsg:
-		// Run `container exec -it <id> <shell>` via tea.ExecProcess
-		// (which exits altscreen, runs the child, then re-enters
-		// altscreen). Force a window-size re-query when the process
-		// exits — without it, the next altscreen frame is sometimes
-		// drawn on top of the just-cleared terminal with old rows
-		// missing, leaving the screen looking glitched (issue
-		// reported: half-rendered table + leftover JSON visible
-		// after pressing 's'). Surfacing exec errors as a toast also
-		// gives the user feedback if the shell fails.
-		//
-		// #nosec G204 -- ID/Shell originate from internal CLI snapshots and the modal's static option list (/bin/bash | /bin/sh), not user-supplied strings; binary path is the configured cli.Client.Bin().
-		execCmd := exec.Command(m.client.Bin(), "exec", "-it", msg.ID, msg.Shell)
+		// Apple's `container exec` returns exit 0 EVEN WHEN THE SHELL
+		// ISN'T INSTALLED — it writes the error to stderr (visible
+		// for milliseconds before altscreen re-entry hides it) and
+		// then exits cleanly. tea.ExecProcess sees a 0 exit code, so
+		// we can't surface a useful error post-hoc. Probe first via
+		// `container exec <id> test -x <shell>` (no -i/-t, so this
+		// returns a real exit code) and toast immediately if the
+		// shell isn't there. This is also why we ditched the host
+		// $SHELL — /bin/zsh is rarely in a Linux container, and the
+		// silent-failure mode left users staring at a "nothing
+		// happened" screen.
 		shortID := msg.ID
 		if len(shortID) > 12 {
 			shortID = shortID[:12]
 		}
-		var toast string
+		probeCtx, probeCancel := context.WithTimeout(context.Background(), 3*time.Second)
+		// #nosec G204 -- ID/Shell originate from internal CLI snapshots and the modal's static option list (/bin/bash | /bin/sh), not user-supplied strings; binary path is the configured cli.Client.Bin().
+		probe := exec.CommandContext(probeCtx, m.client.Bin(), "exec", msg.ID, "test", "-x", msg.Shell)
+		probeErr := probe.Run()
+		probeCancel()
+		if probeErr != nil {
+			m.toast = fmt.Sprintf("%s not available in %s — try the other shell", msg.Shell, shortID)
+			return m, nil
+		}
+
+		// Shell exists. Run `container exec -it <id> <shell>` via
+		// tea.ExecProcess (exits altscreen, runs the child, then
+		// re-enters altscreen).
+		// #nosec G204 -- ID/Shell originate from internal CLI snapshots and the modal's static option list (/bin/bash | /bin/sh), not user-supplied strings; binary path is the configured cli.Client.Bin().
+		execCmd := exec.Command(m.client.Bin(), "exec", "-it", msg.ID, msg.Shell)
 		execDone := tea.ExecProcess(execCmd, func(err error) tea.Msg {
+			toast := ""
 			if err != nil {
 				toast = fmt.Sprintf("shell %s failed: %v", shortID, err)
 			}
-			// Returning a typed sentinel so the redraw + toast logic
-			// runs in the same Update cycle, after altscreen is
-			// re-entered.
 			return shellExecDoneMsg{toast: toast}
 		})
 		return m, execDone
@@ -402,11 +430,19 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if msg.toast != "" {
 			m.toast = msg.toast
 		}
-		// Force a fresh WindowSizeMsg so every screen and the open
-		// modal (if any) reflows against the real terminal size,
-		// repainting the full altscreen rather than only the cells
-		// that happened to differ from the pre-exec frame.
-		return m, tea.WindowSize()
+		// Force a full altscreen repaint after exec returns.
+		// tea.WindowSize() alone isn't enough — bubbletea's renderer
+		// preserves cells it thinks are unchanged, but altscreen
+		// state is corrupt because the shell ran with stdout writing
+		// to the host terminal during the suspend. Issue
+		// tea.ClearScreen first (which emits \033[2J\033[H) and then
+		// re-query the window size so every screen reflows. Without
+		// this, the post-exit frame can show leftover shell output
+		// and stale modal cells.
+		return m, tea.Batch(
+			func() tea.Msg { return tea.ClearScreen() },
+			tea.WindowSize(),
+		)
 
 	case screens.StatusMsg:
 		m.toast = msg.Toast

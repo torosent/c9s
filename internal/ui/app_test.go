@@ -12,6 +12,8 @@ import (
 	"github.com/torosent/c9s/internal/clock"
 	"github.com/torosent/c9s/internal/config"
 	"github.com/torosent/c9s/internal/state"
+	"github.com/torosent/c9s/internal/ui/modals"
+	"github.com/torosent/c9s/internal/ui/screens"
 	"github.com/torosent/c9s/internal/ui/theme"
 )
 
@@ -126,6 +128,80 @@ func TestAppForwardsInitMessagesDuringSplash(t *testing.T) {
 	if !strings.Contains(view, "abc123demo") || !strings.Contains(view, "ghcr.io/example/api") {
 		t.Fatalf("expected container row to be visible after splash dismissal; got:\n%s", view)
 	}
+}
+
+// Regression test for the "I clicked bash and nothing happened" report:
+// the shell-picker batches ShellPickedMsg alongside CloseModalMsg, and
+// tea.Batch makes no ordering guarantees. If app.Update lets
+// ShellPickedMsg fall through to the catch-all "route to top modal"
+// path, the message races CloseModalMsg — when the picker is still on
+// the stack, the modal swallows ShellPickedMsg and the user's pick is
+// dropped.
+//
+// We exercise the worst case directly: feed ShellPickedMsg WHILE the
+// picker is still the top modal. The fix is an explicit typed case in
+// app.Update that forwards ShellPickedMsg to the active screen even
+// when a modal is open. The screen converts it to a SuspendShellMsg.
+func TestAppShellPickedMsgReachesScreenWhilePickerOpen(t *testing.T) {
+	fake := &cli.Fake{
+		VersionResp:        "container CLI version 0.12.1",
+		ListContainersResp: []cli.Container{{ID: "abcd1234abcd", ShortID: "abcd1234abcd", Image: "nginx", Status: "running"}},
+	}
+	app := NewApp(fake, clock.NewFake(time.Unix(0, 0)), theme.DefaultDark(), config.Default())
+	var m tea.Model = app
+	m, _ = m.Update(tea.WindowSizeMsg{Width: 140, Height: 40})
+	m, _ = m.Update(state.RefreshedMsg[cli.Container]{
+		Resource: cli.ResourceContainers,
+		Snapshot: state.Snapshot[cli.Container]{
+			Items:     fake.ListContainersResp,
+			FetchedAt: time.Unix(0, 0),
+		},
+	})
+	m, _ = m.Update(SplashDoneMsg{})
+
+	// Push the picker so it's top of stack — exactly the race the
+	// previous fix had to address (Batch'd ShellPickedMsg arriving
+	// before CloseModalMsg has popped it).
+	root := m.(Model)
+	picker := modals.NewShellPicker("abcd1234abcd", "abcd1234abcd", root.palette)
+	root.stack.Push(picker)
+	m = root
+
+	_, cmd := m.Update(modals.ShellPickedMsg{ID: "abcd1234abcd", Shell: "/bin/bash"})
+	if cmd == nil {
+		t.Fatal("expected ShellPickedMsg to produce a cmd; modal swallowed it")
+	}
+
+	// The screen's ShellPickedMsg handler returns a Batch whose
+	// only Cmd resolves to a screens.SuspendShellMsg. Drain it.
+	if !batchContainsSuspendShell(cmd, "abcd1234abcd", "/bin/bash") {
+		t.Errorf("expected SuspendShellMsg{ID:abcd1234abcd, Shell:/bin/bash} from screen, got %#v", cmd())
+	}
+}
+
+func batchContainsSuspendShell(cmd tea.Cmd, wantID, wantShell string) bool {
+	if cmd == nil {
+		return false
+	}
+	check := func(msg tea.Msg) bool {
+		s, ok := msg.(screens.SuspendShellMsg)
+		return ok && s.ID == wantID && s.Shell == wantShell
+	}
+	msg := cmd()
+	if check(msg) {
+		return true
+	}
+	if batch, ok := msg.(tea.BatchMsg); ok {
+		for _, c := range batch {
+			if c == nil {
+				continue
+			}
+			if check(c()) {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func TestAppCtrlETogglesHeader(t *testing.T) {

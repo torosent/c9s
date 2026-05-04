@@ -20,13 +20,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- **Glitched TUI after `tea.ExecProcess` returns.** After the user
-  exited an in-container shell, the next altscreen frame sometimes
-  rendered on top of stale cells and left the screen looking
-  half-drawn (truncated table + leftover JSON visible). The
-  `SuspendShellMsg` handler now returns `tea.WindowSize()` after
-  exec, forcing every screen and the open modal (if any) to reflow
-  against the real terminal size and repaint the full altscreen.
+- **`ShellPickedMsg` was swallowed by the still-open picker modal.**
+  The picker batches `ShellPickedMsg` alongside `CloseModalMsg`, but
+  `tea.Batch` doesn't guarantee ordering. When `ShellPickedMsg`
+  arrived first the picker was still top of stack, the modal received
+  the message, didn't handle it, and the user's pick vanished — the
+  classic "I clicked bash and nothing happened" symptom. Added an
+  explicit typed case in `app.Update` that forwards `ShellPickedMsg`
+  directly to the active screen, mirroring `ConfirmResultMsg`.
+- **Probe shell existence before suspending the TUI.** Apple's
+  `container exec -it <id> <shell>` returns **exit 0 even when the
+  shell isn't installed** — it writes the error to stderr (visible
+  for milliseconds before altscreen re-entry hides it) and exits.
+  `tea.ExecProcess` sees a clean exit so we can't surface a useful
+  toast post-hoc. Now probe `container exec <id> test -x <shell>`
+  (3-second timeout, no `-it`) before running the interactive exec;
+  if the probe fails we toast `<shell> not available in <id> — try
+  the other shell` and skip the suspend entirely.
+- **Glitched TUI after `tea.ExecProcess` returns.** Even on a
+  successful shell session, after exit the next altscreen frame
+  sometimes rendered on top of stale cells (truncated table +
+  leftover output visible). `tea.WindowSize()` alone wasn't enough
+  because bubbletea's renderer preserves cells it thinks are
+  unchanged. The handler now batches `tea.ClearScreen` (emits
+  `\033[2J\033[H`) ahead of `tea.WindowSize()` to force a full
+  altscreen repaint.
 - **`x` (stop), `Shift+K` (kill), `Shift+R` (restart), and `p` (pause)
   now refresh the table immediately.** Previously they relied on the
   2-second poll tick, so the user pressed `x` to stop a container and
