@@ -50,6 +50,7 @@ nav:
   - Hotkeys: hotkeys.md
   - Skins: skins.md
   - Streaming: streaming.md
+  - Docker shim: docker-shim.md
   - k9s Migration: k9s-migration.md
   - Demos: demos-rendering.md
   - FAQ: faq.md
