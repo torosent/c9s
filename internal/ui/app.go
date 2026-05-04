@@ -453,22 +453,24 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if msg.toast != "" {
 			m.toast = msg.toast
 		}
-		// Bubbletea's RestoreTerminal (called by tea.ExecProcess) is
-		// supposed to repaint the altscreen, but in practice the
-		// renderer's lastRenderedLines diff cache survives the
-		// suspend/resume cycle and the next flush ends up writing
-		// only a handful of lines that "differ" from the stale
-		// cache — leaving most of the screen blank or showing the
-		// pre-exec frame. We have to force a true repaint
-		// ourselves.
+		// Bubbletea's RestoreTerminal calls renderer.enterAltScreen()
+		// which is supposed to repaint() (clearing lastRender +
+		// lastRenderedLines). Instrumented bytes show the renderer's
+		// diff cache often survives anyway and the next flush ends
+		// up writing only a handful of lines that "differ" from the
+		// stale cache.
 		//
-		// tea.ClearScreen issues \033[2J\033[H on the wire AND
-		// triggers renderer.repaint() which clears lastRender +
-		// lastRenderedLines. Pair it with a fresh synthetic
-		// WindowSizeMsg (so the active screen and any open modal
-		// reflow against bodyRegionHeight) and a short Tick to give
-		// the renderer goroutine a beat to flush against the
-		// repainted state. tea.Sequence enforces the order.
+		// tea.ClearScreen Msg → renderer.clearScreen() which does
+		// EraseEntireScreen + CursorHomePosition + repaint(). The
+		// repaint resets lastRender + lastRenderedLines so the next
+		// flush has canSkip=false everywhere and writes the full
+		// View. Pair it with a synthetic WindowSizeMsg (so the
+		// active screen and any open modal reflow against
+		// bodyRegionHeight) and re-Init the screen so the polling
+		// tick consumed during the suspend rearms.
+		//
+		// tea.Sequence enforces strict ordering — Batch's concurrent
+		// execution loses the race against the renderer ticker.
 		width, height := m.width, m.height
 		var initCmd tea.Cmd
 		if scr, ok := m.screens[m.active]; ok {
