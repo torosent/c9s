@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Splash dropping the active screen's first refresh and tick.** The
+  app's catch-all message-forwarding block was gated behind
+  `!m.showSplash`, which meant any message dispatched by the active
+  screen's `Init` (the immediate `RefreshedMsg` plus the first
+  `TickMsg`) was silently dropped while the splash was still on
+  screen. Combined with `clock.Real().Tick()` being one-shot via
+  `time.After`, this killed the auto-refresh loop entirely — users
+  saw `0 items` until they happened to switch screens or press `r`.
+  Now `RefreshedMsg`, `TickMsg`, and other internal messages are
+  forwarded to the active screen even while the splash is up; only
+  KeyMsg / WindowSizeMsg are still routed to the splash. Regression
+  test in `internal/ui/app_test.go`.
+
 ## [0.1.4] - 2026-05-04
 
 ### Added

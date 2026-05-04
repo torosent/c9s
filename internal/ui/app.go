@@ -465,26 +465,33 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	// handler) keeps running while a modal is open. Otherwise the modal
 	// swallows the tick, the underlying screen's data freezes, and after
 	// the modal closes the user sees stale data.
-	if !m.showSplash {
-		if _, isTick := msg.(state.TickMsg); isTick {
-			if scr, ok := m.screens[m.active]; ok {
-				newScr, cmd := scr.Update(msg)
-				m.screens[m.active] = newScr
-				return m, cmd
-			}
-		}
-		if !m.stack.Empty() {
-			modal := m.stack.Top()
-			newModal, cmd := modal.Update(msg)
-			m.stack.Pop()
-			m.stack.Push(newModal)
-			return m, cmd
-		}
+	//
+	// Forwarding also runs while the splash is showing: the active
+	// screen's Init dispatches an immediate fetch (RefreshedMsg) and
+	// arms its first TickCmd. If those messages were dropped during
+	// splash, the screen would render empty until the user happened to
+	// trigger another fetch (e.g., a screen switch), and—because
+	// clock.Real().Tick() is one-shot via time.After—the polling loop
+	// would never re-arm. Splash only intercepts keys/window-size in
+	// the typed cases above.
+	if _, isTick := msg.(state.TickMsg); isTick {
 		if scr, ok := m.screens[m.active]; ok {
 			newScr, cmd := scr.Update(msg)
 			m.screens[m.active] = newScr
 			return m, cmd
 		}
+	}
+	if !m.stack.Empty() {
+		modal := m.stack.Top()
+		newModal, cmd := modal.Update(msg)
+		m.stack.Pop()
+		m.stack.Push(newModal)
+		return m, cmd
+	}
+	if scr, ok := m.screens[m.active]; ok {
+		newScr, cmd := scr.Update(msg)
+		m.screens[m.active] = newScr
+		return m, cmd
 	}
 
 	return m, nil

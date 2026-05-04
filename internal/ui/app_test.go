@@ -11,6 +11,7 @@ import (
 	"github.com/torosent/c9s/internal/cli"
 	"github.com/torosent/c9s/internal/clock"
 	"github.com/torosent/c9s/internal/config"
+	"github.com/torosent/c9s/internal/state"
 	"github.com/torosent/c9s/internal/ui/theme"
 )
 
@@ -74,6 +75,57 @@ func contains(ss []string, want string) bool {
 		}
 	}
 	return false
+}
+
+// Regression test: messages dispatched by the active screen's Init (the
+// initial RefreshedMsg, plus the first TickMsg arming the polling loop)
+// must reach the screen even while the splash is still shown. Otherwise
+// the table renders empty until the user happens to trigger another
+// fetch (a screen switch, an `r` press, etc.), and—because
+// clock.Real().Tick() is one-shot via time.After—the auto-refresh loop
+// dies entirely. See the splash-message-drop fix in app.go.
+//
+// We exercise Update directly (rather than via teatest) so the assertion
+// targets exactly the splash-gate code path, with no async Cmd
+// goroutines racing the test.
+func TestAppForwardsInitMessagesDuringSplash(t *testing.T) {
+	fake := &cli.Fake{
+		VersionResp: "container CLI version 0.12.1",
+		// Intentionally empty: only the synthesized RefreshedMsg below
+		// supplies the data, so the test fails cleanly if that message
+		// is dropped during the splash.
+	}
+	app := NewApp(fake, clock.NewFake(time.Unix(0, 0)), theme.DefaultDark(), config.Default())
+
+	// Drive Init so screens get their initial state. Discard the
+	// returned Cmd; we don't run the goroutines for this test.
+	mdl, _ := app, app.Init()
+	_ = mdl
+	var m tea.Model = app
+
+	// Sized so the table renders rows.
+	m, _ = m.Update(tea.WindowSizeMsg{Width: 140, Height: 40})
+
+	// Splash is showing. Synthesize the RefreshedMsg the containers
+	// screen Init would emit. Without the fix this is dropped on the
+	// floor by the `if !m.showSplash` gate in app.Update.
+	m, _ = m.Update(state.RefreshedMsg[cli.Container]{
+		Resource: cli.ResourceContainers,
+		Snapshot: state.Snapshot[cli.Container]{
+			Items: []cli.Container{
+				{ID: "abc123demo", ShortID: "abc123demo", Image: "ghcr.io/example/api:1.0", Status: "running"},
+			},
+			FetchedAt: time.Unix(0, 0),
+		},
+	})
+
+	// Dismiss the splash.
+	m, _ = m.Update(SplashDoneMsg{})
+
+	view := m.View()
+	if !strings.Contains(view, "abc123demo") || !strings.Contains(view, "ghcr.io/example/api") {
+		t.Fatalf("expected container row to be visible after splash dismissal; got:\n%s", view)
+	}
 }
 
 func TestAppCtrlETogglesHeader(t *testing.T) {
