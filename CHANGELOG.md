@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Upgraded to bubbletea v2 (`charm.land/bubbletea/v2`)**, plus
+  matching v2 of `lipgloss` and `bubbles`. v2 ships a new cell-based
+  renderer (uses Charm's `ultraviolet` terminal library) that
+  correctly handles `tea.ExecProcess` resume — the old line-diff
+  renderer in v1.3.10 had a bug where the `lastRenderedLines` cache
+  survived the suspend/resume cycle even though `repaint()` was
+  called, leaving the user with banner-bottom + one container row +
+  acres of blank space after `s` → bash → `exit`. v2's renderer
+  doesn't have this bug. Instrumented byte-stream capture confirms
+  the post-exec frame is now drawn correctly.
+  - All key handlers updated to `tea.KeyPressMsg` (v2's
+    `tea.KeyMsg` is now an interface).
+  - All mouse handlers updated to `tea.MouseClickMsg` /
+    `tea.MouseWheelMsg` (also interfaces in v2).
+  - Root `Model.View()` returns `tea.View` instead of `string`;
+    altscreen and mouse mode are now declared via `View.AltScreen`
+    and `View.MouseMode` rather than `tea.NewProgram` options.
+  - `lipgloss.Color` is a constructor function in v2; the `Palette`
+    struct fields are now `image/color.Color`.
+
 ### Added
 
 - **Shell picker modal** — `s` on a running container now opens a
