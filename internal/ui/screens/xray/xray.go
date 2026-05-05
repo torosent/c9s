@@ -102,7 +102,7 @@ func (m *Model) Update(msg tea.Msg) (screens.Screen, tea.Cmd) {
 	case TreeBuiltMsg:
 		m.tree = widgets.NewTree(msg.Root)
 
-	case tea.KeyMsg:
+	case tea.KeyPressMsg:
 		switch {
 		case m.keymap.Matches("jump", msg):
 			if m.tree.Focused != nil {

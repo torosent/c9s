@@ -96,7 +96,7 @@ func main() {
 
 	app := ui.NewApp(client, clock.Real(), palette, cfg)
 	app.SetSkinName(skinName)
-	p := tea.NewProgram(app, tea.WithAltScreen(), tea.WithMouseCellMotion())
+	p := tea.NewProgram(app)
 	if _, err := p.Run(); err != nil {
 		fmt.Fprintln(os.Stderr, "c9s:", err)
 		os.Exit(1)

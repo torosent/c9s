@@ -53,7 +53,7 @@ func NewProgressModel(kind jobs.Kind, target string, stream cli.Stream, clk cloc
 func NewProgressModelWithPalette(kind jobs.Kind, target string, stream cli.Stream, clk clock.Clock, p theme.Palette) *ProgressModel {
 	ctx, cancel := context.WithCancel(context.Background())
 
-	vp := viewport.New(80, 20)
+	vp := viewport.New(viewport.WithWidth(80), viewport.WithHeight(20))
 	vp.Style = lipgloss.NewStyle().Background(p.Bg).Foreground(p.Fg)
 
 	return &ProgressModel{
@@ -118,7 +118,7 @@ func (m *ProgressModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmds []tea.Cmd
 
 	switch msg := msg.(type) {
-	case tea.KeyMsg:
+	case tea.KeyPressMsg:
 		return m.handleKey(msg)
 
 	case progressEventMsg:
@@ -146,8 +146,8 @@ func (m *ProgressModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
 		m.height = msg.Height
-		m.viewport.Width = msg.Width
-		m.viewport.Height = msg.Height - 5
+		m.viewport.SetWidth(msg.Width)
+		m.viewport.SetHeight(msg.Height - 5)
 		m.updateViewport()
 	}
 
@@ -158,7 +158,7 @@ func (m *ProgressModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, tea.Batch(cmds...)
 }
 
-func (m *ProgressModel) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+func (m *ProgressModel) handleKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	switch msg.String() {
 	case "q", "esc":
 		if m.done {
@@ -314,14 +314,20 @@ func (m *ProgressModel) renderRaw() string {
 	return strings.Join(m.rawLines, "\n")
 }
 
-// View implements tea.Model.
-func (m *ProgressModel) View() string {
+// ViewString returns the rendered view as a styled string. It's used by
+// progress_wrap to embed the progress modal inside the modal stack.
+func (m *ProgressModel) ViewString() string {
 	header := m.renderHeader()
 	body := m.viewport.View()
 	footer := m.renderFooter()
 
 	bg := lipgloss.NewStyle().Background(m.palette.Bg).Foreground(m.palette.Fg)
 	return bg.Render(lipgloss.JoinVertical(lipgloss.Left, header, body, footer))
+}
+
+// View implements tea.Model.
+func (m *ProgressModel) View() tea.View {
+	return tea.NewView(m.ViewString())
 }
 
 func (m *ProgressModel) renderHeader() string {

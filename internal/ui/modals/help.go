@@ -34,7 +34,7 @@ func (m HelpModel) Init() tea.Cmd {
 // Update implements Modal.
 func (m HelpModel) Update(msg tea.Msg) (Modal, tea.Cmd) {
 	switch msg.(type) {
-	case tea.KeyMsg:
+	case tea.KeyPressMsg:
 		// Any key closes the help modal
 		return m, func() tea.Msg {
 			return CloseModalMsg{}

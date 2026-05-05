@@ -206,9 +206,8 @@ func (m *Model) Update(msg tea.Msg) (screens.Screen, tea.Cmd) {
 			state.TickCmd(2*time.Second, m.clk, cli.ResourceContainers),
 		)
 
-	case tea.MouseMsg:
-		switch msg.Button {
-		case tea.MouseButtonLeft:
+	case tea.MouseClickMsg:
+		if msg.Button == tea.MouseLeft {
 			// Compute row index (assuming table starts at Y=3 after title+header)
 			if msg.Y >= 3 {
 				row := msg.Y - 3
@@ -216,13 +215,16 @@ func (m *Model) Update(msg tea.Msg) (screens.Screen, tea.Cmd) {
 					m.tbl.SetCursor(row)
 				}
 			}
-		case tea.MouseButtonWheelUp:
+		}
+	case tea.MouseWheelMsg:
+		switch msg.Button {
+		case tea.MouseWheelUp:
 			m.tbl.MoveUp(1)
-		case tea.MouseButtonWheelDown:
+		case tea.MouseWheelDown:
 			m.tbl.MoveDown(1)
 		}
 
-	case tea.KeyMsg:
+	case tea.KeyPressMsg:
 		if m.filterMode {
 			return m.handleFilterKey(msg)
 		}
@@ -307,7 +309,7 @@ func (m *Model) Update(msg tea.Msg) (screens.Screen, tea.Cmd) {
 		}
 
 		// Enter on the focused row opens logs (k9s convention).
-		if msg.Type == tea.KeyEnter {
+		if msg.String() == "enter" {
 			return m, m.openLogs()
 		}
 
@@ -913,25 +915,27 @@ func (m *Model) performPrune() tea.Cmd {
 }
 
 // handleFilterKey handles key input in filter mode.
-func (m *Model) handleFilterKey(msg tea.KeyMsg) (screens.Screen, tea.Cmd) {
-	switch msg.Type {
-	case tea.KeyEnter:
+func (m *Model) handleFilterKey(msg tea.KeyPressMsg) (screens.Screen, tea.Cmd) {
+	switch msg.String() {
+	case "enter":
 		m.filterMode = false
 		m.rebuildTable()
 		return m, nil
-	case tea.KeyEsc:
+	case "esc":
 		m.filterMode = false
 		m.filter = ""
 		m.rebuildTable()
 		return m, nil
-	case tea.KeyBackspace:
+	case "backspace":
 		if len(m.filter) > 0 {
 			m.filter = m.filter[:len(m.filter)-1]
 		}
 		return m, nil
-	case tea.KeyRunes:
-		m.filter += string(msg.Runes)
-		return m, nil
+	default:
+		if msg.Text != "" {
+			m.filter += msg.Text
+			return m, nil
+		}
 	}
 	return m, nil
 }

@@ -82,7 +82,7 @@ func (m DFModel) Update(msg tea.Msg) (screens.Screen, tea.Cmd) {
 	case dfMsg:
 		m.df = cli.SystemDF(msg)
 		m.rebuildTable()
-	case tea.KeyMsg:
+	case tea.KeyPressMsg:
 		if m.keymap.Matches("refresh", msg) {
 			return m, m.refreshCmd()
 		}

@@ -48,7 +48,7 @@ func NewTextInput(label, prompt, initial string, p theme.Palette) TextInputModel
 	field.Placeholder = ""
 	field.Prompt = "> "
 	field.CharLimit = 256
-	field.Width = 60
+	field.SetWidth(60)
 	styleTextInput(&field, p)
 	if initial != "" {
 		field.SetValue(initial)
@@ -74,15 +74,15 @@ func (m TextInputModel) Init() tea.Cmd { return textinput.Blink }
 // Update implements Modal.
 func (m TextInputModel) Update(msg tea.Msg) (Modal, tea.Cmd) {
 	switch msg := msg.(type) {
-	case tea.KeyMsg:
-		switch msg.Type {
-		case tea.KeyEsc:
+	case tea.KeyPressMsg:
+		switch msg.String() {
+		case "esc":
 			label := m.label
 			return m, tea.Batch(
 				func() tea.Msg { return TextInputCancelledMsg{Label: label} },
 				CloseModal(),
 			)
-		case tea.KeyEnter:
+		case "enter":
 			value := m.field.Value()
 			if m.validator != nil {
 				if errMsg := m.validator(value); errMsg != "" {

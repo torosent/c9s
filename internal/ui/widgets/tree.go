@@ -42,7 +42,7 @@ func (t TreeModel) Init() tea.Cmd {
 // Update implements tea.Model.
 func (t TreeModel) Update(msg tea.Msg) (TreeModel, tea.Cmd) {
 	switch msg := msg.(type) {
-	case tea.KeyMsg:
+	case tea.KeyPressMsg:
 		switch msg.String() {
 		case "up", "k":
 			t.MoveUp()

@@ -3,13 +3,14 @@ package theme
 import (
 	"embed"
 	"fmt"
+	"image/color"
 	"os"
 	"path/filepath"
 	"sort"
 	"strings"
 
-	"github.com/BurntSushi/toml"
 	"charm.land/lipgloss/v2"
+	"github.com/BurntSushi/toml"
 )
 
 //go:embed skins/*.toml
@@ -127,7 +128,7 @@ func parseSkin(data []byte) (Palette, error) {
 		SelectionBg: lipgloss.Color(skin.Colors.SelectionBg),
 		HeaderFg:    lipgloss.Color(skin.Colors.HeaderFg),
 		HeaderBg:    lipgloss.Color(skin.Colors.HeaderBg),
-		State:       make(map[string]lipgloss.Color),
+		State:       make(map[string]color.Color),
 	}
 
 	// Convert state colors

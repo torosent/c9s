@@ -3,6 +3,7 @@ package skinx
 
 import (
 	"fmt"
+	"image/color"
 
 	"charm.land/bubbles/v2/table"
 	"charm.land/lipgloss/v2"
@@ -86,7 +87,7 @@ func BorderedBox(p theme.Palette, title, filter string, count, width, height int
 }
 
 // overlayTitle splices the styled title into the top-border row.
-func overlayTitle(boxed, header string, border, bg lipgloss.Color) string {
+func overlayTitle(boxed, header string, border, bg color.Color) string {
 	// Find first newline (top border row).
 	for i := 0; i < len(boxed); i++ {
 		if boxed[i] == '\n' {

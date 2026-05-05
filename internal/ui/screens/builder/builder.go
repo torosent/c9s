@@ -83,7 +83,7 @@ func (m *Model) Update(msg tea.Msg) (screens.Screen, tea.Cmd) {
 			cmds = append(cmds, m.deleteBuilder())
 		}
 
-	case tea.KeyMsg:
+	case tea.KeyPressMsg:
 		if m.keymap.Matches("refresh", msg) {
 			return m, m.refreshCmd()
 		}

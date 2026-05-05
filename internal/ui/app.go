@@ -503,7 +503,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		return m, nil
 
-	case tea.KeyMsg:
+	case tea.KeyPressMsg:
 		if m.showSplash {
 			var cmd tea.Cmd
 			m.splash, cmd = m.splash.Update(msg)
@@ -635,16 +635,16 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-func (m Model) handleCommandKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
-	switch msg.Type {
-	case tea.KeyEsc:
+func (m Model) handleCommandKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
+	switch msg.String() {
+	case "esc":
 		m.cmdActive = false
 		m.cmdBuf = ""
 		if m.history != nil {
 			m.history.Reset()
 		}
 		return m, nil
-	case tea.KeyEnter:
+	case "enter":
 		cmd := strings.TrimSpace(m.cmdBuf)
 		m.cmdActive = false
 		m.cmdBuf = ""
@@ -653,12 +653,12 @@ func (m Model) handleCommandKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.history.Reset()
 		}
 		return m.runCommand(cmd)
-	case tea.KeyBackspace:
+	case "backspace":
 		if len(m.cmdBuf) > 0 {
 			m.cmdBuf = m.cmdBuf[:len(m.cmdBuf)-1]
 		}
 		return m, nil
-	case tea.KeyTab:
+	case "tab":
 		// Autocomplete to the longest common prefix of matching commands.
 		matches := palette.Match(m.cmdBuf, palette.Catalog())
 		if len(matches) == 0 {
@@ -680,14 +680,14 @@ func (m Model) handleCommandKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.cmdBuf = lcp
 		}
 		return m, nil
-	case tea.KeyUp:
+	case "up":
 		if m.history != nil {
 			if prev := m.history.Up(); prev != "" {
 				m.cmdBuf = prev
 			}
 		}
 		return m, nil
-	case tea.KeyDown:
+	case "down":
 		if m.history != nil {
 			if next := m.history.Down(); next != "" {
 				m.cmdBuf = next
@@ -696,11 +696,13 @@ func (m Model) handleCommandKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			}
 		}
 		return m, nil
-	case tea.KeySpace:
+	case "space":
 		m.cmdBuf += " "
 		return m, nil
-	case tea.KeyRunes:
-		m.cmdBuf += string(msg.Runes)
+	default:
+		if msg.Text != "" {
+			m.cmdBuf += msg.Text
+		}
 		return m, nil
 	}
 	return m, nil
@@ -958,7 +960,7 @@ func (m Model) runCommand(cmd string) (tea.Model, tea.Cmd) {
 		// and keeps the screen as the single source of truth for what
 		// "prune" means in its context.
 		if scr, ok := m.screens["containers"]; ok {
-			newScr, cmd := scr.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'P'}})
+			newScr, cmd := scr.Update(tea.KeyPressMsg{Code: 'P', Text: "P"})
 			m.screens["containers"] = newScr
 			return m, cmd
 		}
@@ -1119,7 +1121,7 @@ func (m *Model) logError(op, resource, message, detail string) {
 }
 
 // View implements tea.Model.
-func (m Model) View() string {
+func (m Model) View() tea.View {
 	out := m.viewInternal()
 	if os.Getenv("C9S_TRACE") != "" {
 		if f, err := os.OpenFile("/tmp/c9s-trace.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644); err == nil {
@@ -1129,7 +1131,10 @@ func (m Model) View() string {
 			f.Close()
 		}
 	}
-	return out
+	v := tea.NewView(out)
+	v.AltScreen = true
+	v.MouseMode = tea.MouseModeCellMotion
+	return v
 }
 
 func (m Model) viewInternal() string {
@@ -1268,8 +1273,7 @@ func (m Model) viewInternal() string {
 			m.width, bodyHeight,
 			lipgloss.Center, lipgloss.Center,
 			modalContent,
-			lipgloss.WithWhitespaceBackground(m.palette.Bg),
-			lipgloss.WithWhitespaceForeground(m.palette.Bg),
+			lipgloss.WithWhitespaceStyle(lipgloss.NewStyle().Background(m.palette.Bg).Foreground(m.palette.Bg)),
 		)
 	}
 

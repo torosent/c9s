@@ -47,7 +47,7 @@ func NewBuildForm(pathHint string, p theme.Palette) BuildFormModel {
 		t.Prompt = prompt
 		t.Placeholder = placeholder
 		t.CharLimit = 256
-		t.Width = 50
+		t.SetWidth(50)
 		styleTextInput(&t, p)
 		return t
 	}
@@ -78,22 +78,22 @@ func (m BuildFormModel) Init() tea.Cmd { return textinput.Blink }
 // Update implements Modal.
 func (m BuildFormModel) Update(msg tea.Msg) (Modal, tea.Cmd) {
 	switch msg := msg.(type) {
-	case tea.KeyMsg:
-		switch msg.Type {
-		case tea.KeyEsc:
+	case tea.KeyPressMsg:
+		switch msg.String() {
+		case "esc":
 			return m, tea.Batch(
 				func() tea.Msg { return BuildCancelledMsg{} },
 				CloseModal(),
 			)
-		case tea.KeyTab:
+		case "tab":
 			m.focus = (m.focus + 1) % buildFieldCount
 			m.applyFocus()
 			return m, nil
-		case tea.KeyShiftTab:
+		case "shift+tab":
 			m.focus = (m.focus + buildFieldCount - 1) % buildFieldCount
 			m.applyFocus()
 			return m, nil
-		case tea.KeyCtrlD, tea.KeyCtrlS:
+		case "ctrl+d", "ctrl+s":
 			return m.submit()
 		}
 		switch msg.String() {

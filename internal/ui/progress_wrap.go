@@ -37,7 +37,7 @@ func (w progressModalWrap) View(width, height int) string {
 	if w.p == nil {
 		return ""
 	}
-	return w.p.View()
+	return w.p.ViewString()
 }
 
 // Title implements modals.Modal.

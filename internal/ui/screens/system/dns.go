@@ -116,7 +116,7 @@ func (m DNSModel) Update(msg tea.Msg) (screens.Screen, tea.Cmd) {
 		if msg.Result.Label == "create-dns" {
 			cmds = append(cmds, m.performCreate(msg.Result.Value))
 		}
-	case tea.KeyMsg:
+	case tea.KeyPressMsg:
 		if m.filterMode {
 			return m.handleFilterKey(msg)
 		}
@@ -281,27 +281,29 @@ func (m *DNSModel) requestSetDefault() tea.Cmd {
 	}
 }
 
-func (m DNSModel) handleFilterKey(msg tea.KeyMsg) (screens.Screen, tea.Cmd) {
-	switch msg.Type {
-	case tea.KeyEnter:
+func (m DNSModel) handleFilterKey(msg tea.KeyPressMsg) (screens.Screen, tea.Cmd) {
+	switch msg.String() {
+	case "enter":
 		m.filterMode = false
 		m.rebuildTable()
 		return m, nil
-	case tea.KeyEsc:
+	case "esc":
 		m.filterMode = false
 		m.filter = ""
 		m.rebuildTable()
 		return m, nil
-	case tea.KeyBackspace:
+	case "backspace":
 		if len(m.filter) > 0 {
 			m.filter = m.filter[:len(m.filter)-1]
 			m.rebuildTable()
 		}
 		return m, nil
-	case tea.KeyRunes:
-		m.filter += string(msg.Runes)
-		m.rebuildTable()
-		return m, nil
+	default:
+		if msg.Text != "" {
+			m.filter += msg.Text
+			m.rebuildTable()
+			return m, nil
+		}
 	}
 	return m, nil
 }

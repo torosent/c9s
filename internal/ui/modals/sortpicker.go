@@ -54,7 +54,7 @@ type SortPickedMsg struct {
 // Update implements Modal.
 func (m SortPickerModel) Update(msg tea.Msg) (Modal, tea.Cmd) {
 	switch msg := msg.(type) {
-	case tea.KeyMsg:
+	case tea.KeyPressMsg:
 		switch msg.String() {
 		case "up", "k":
 			if m.cursor > 0 {
@@ -147,8 +147,7 @@ func (m SortPickerModel) View(width, height int) string {
 		width, height,
 		lipgloss.Center, lipgloss.Center,
 		box,
-		lipgloss.WithWhitespaceBackground(m.palette.Bg),
-		lipgloss.WithWhitespaceForeground(m.palette.Bg),
+		lipgloss.WithWhitespaceStyle(lipgloss.NewStyle().Background(m.palette.Bg).Foreground(m.palette.Bg)),
 	)
 }
 

@@ -56,7 +56,7 @@ func (m SplashModel) Update(msg tea.Msg) (SplashModel, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
 		m.width, m.height = msg.Width, msg.Height
-	case tea.KeyMsg:
+	case tea.KeyPressMsg:
 		_ = msg
 		return m, func() tea.Msg { return SplashDoneMsg{} }
 	}
@@ -126,7 +126,6 @@ func (m SplashModel) View() string {
 		m.width, m.height,
 		lipgloss.Center, lipgloss.Center,
 		body,
-		lipgloss.WithWhitespaceBackground(p.Bg),
-		lipgloss.WithWhitespaceForeground(p.Bg),
+		lipgloss.WithWhitespaceStyle(lipgloss.NewStyle().Background(p.Bg).Foreground(p.Bg)),
 	)
 }

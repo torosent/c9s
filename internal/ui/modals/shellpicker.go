@@ -56,7 +56,7 @@ func (m ShellPickerModel) Init() tea.Cmd { return nil }
 
 // Update implements Modal.
 func (m ShellPickerModel) Update(msg tea.Msg) (Modal, tea.Cmd) {
-	if key, ok := msg.(tea.KeyMsg); ok {
+	if key, ok := msg.(tea.KeyPressMsg); ok {
 		switch key.String() {
 		case "up", "k":
 			if m.cursor > 0 {
@@ -74,8 +74,8 @@ func (m ShellPickerModel) Update(msg tea.Msg) (Modal, tea.Cmd) {
 			return m, func() tea.Msg { return CloseModalMsg{} }
 		}
 		// Direct hot-letter selection: 'b' or 's'.
-		if key.Type == tea.KeyRunes && len(key.Runes) == 1 {
-			r := key.Runes[0]
+		if t := key.Text; len(t) == 1 {
+			r := rune(t[0])
 			for _, opt := range m.options {
 				if r == opt.key {
 					return m.pick(opt)
@@ -153,8 +153,7 @@ func (m ShellPickerModel) View(width, height int) string {
 		width, height,
 		lipgloss.Center, lipgloss.Center,
 		box,
-		lipgloss.WithWhitespaceBackground(m.palette.Bg),
-		lipgloss.WithWhitespaceForeground(m.palette.Bg),
+		lipgloss.WithWhitespaceStyle(lipgloss.NewStyle().Background(m.palette.Bg).Foreground(m.palette.Bg)),
 	)
 }
 

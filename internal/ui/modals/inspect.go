@@ -30,7 +30,7 @@ func NewInspect(title string, jsonBytes []byte, p theme.Palette) InspectModel {
 		content = string(jsonBytes)
 	}
 
-	vp := viewport.New(80, 24)
+	vp := viewport.New(viewport.WithWidth(80), viewport.WithHeight(24))
 	vp.SetContent(content)
 
 	return InspectModel{
@@ -49,17 +49,15 @@ func (m InspectModel) Init() tea.Cmd {
 // Update implements Modal.
 func (m InspectModel) Update(msg tea.Msg) (Modal, tea.Cmd) {
 	switch msg := msg.(type) {
-	case tea.KeyMsg:
-		switch msg.Type {
-		case tea.KeyEsc:
+	case tea.KeyPressMsg:
+		switch msg.String() {
+		case "esc":
 			return m, func() tea.Msg {
 				return CloseModalMsg{}
 			}
-		case tea.KeyRunes:
-			if len(msg.Runes) > 0 && (msg.Runes[0] == 'q' || msg.Runes[0] == 'Q') {
-				return m, func() tea.Msg {
-					return CloseModalMsg{}
-				}
+		case "q", "Q":
+			return m, func() tea.Msg {
+				return CloseModalMsg{}
 			}
 		}
 
@@ -74,8 +72,8 @@ func (m InspectModel) Update(msg tea.Msg) (Modal, tea.Cmd) {
 
 // View implements Modal.
 func (m InspectModel) View(width, height int) string {
-	m.viewport.Width = width - 8
-	m.viewport.Height = height - 8
+	m.viewport.SetWidth(width - 8)
+	m.viewport.SetHeight(height - 8)
 
 	// Build the view
 	helpText := lipgloss.NewStyle().

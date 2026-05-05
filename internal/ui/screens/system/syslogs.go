@@ -3,6 +3,7 @@ package system
 import (
 	"context"
 	"fmt"
+	"image/color"
 	"strings"
 
 	"charm.land/bubbles/v2/viewport"
@@ -37,7 +38,7 @@ type LogsModel struct {
 // NewLogs creates a new :logs sub-screen.
 func NewLogs(client cli.Client, clk clock.Clock, p theme.Palette) *LogsModel {
 	km := keymap.Default()
-	vp := viewport.New(80, 18)
+	vp := viewport.New(viewport.WithWidth(80), viewport.WithHeight(18))
 	vp.Style = lipgloss.NewStyle()
 	return &LogsModel{
 		client:   client,
@@ -102,9 +103,9 @@ func (m *LogsModel) Update(msg tea.Msg) (screens.Screen, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
 		m.height = msg.Height
-		m.viewport.Width = msg.Width
+		m.viewport.SetWidth(msg.Width)
 		if msg.Height > 4 {
-			m.viewport.Height = msg.Height - 4
+			m.viewport.SetHeight(msg.Height - 4)
 		}
 		m.rebuild()
 
@@ -118,7 +119,7 @@ func (m *LogsModel) Update(msg tea.Msg) (screens.Screen, tea.Cmd) {
 		m.appendLine(fmt.Sprintf("[stream ended: exit %d]", msg.result.ExitCode))
 		m.rebuild()
 
-	case tea.KeyMsg:
+	case tea.KeyPressMsg:
 		switch msg.String() {
 		case "G":
 			m.follow = true
@@ -204,7 +205,7 @@ func (m *LogsModel) Cancel() {
 }
 
 func colorizeLevel(line, level string) string {
-	var color lipgloss.Color
+	var color color.Color
 	switch level {
 	case "INFO":
 		color = lipgloss.Color("86")

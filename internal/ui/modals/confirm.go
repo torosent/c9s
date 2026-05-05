@@ -36,32 +36,27 @@ func (m ConfirmModel) Init() tea.Cmd {
 // Update implements Modal.
 func (m ConfirmModel) Update(msg tea.Msg) (Modal, tea.Cmd) {
 	switch msg := msg.(type) {
-	case tea.KeyMsg:
-		switch msg.Type {
-		case tea.KeyRunes:
-			if len(msg.Runes) > 0 {
-				switch msg.Runes[0] {
-				case 'y', 'Y':
-					return m, tea.Batch(
-						func() tea.Msg {
-							return ConfirmResultMsg{Result: ConfirmResult{Confirmed: true, Tag: m.tag}}
-						},
-						func() tea.Msg {
-							return CloseModalMsg{}
-						},
-					)
-				case 'n', 'N':
-					return m, tea.Batch(
-						func() tea.Msg {
-							return ConfirmResultMsg{Result: ConfirmResult{Confirmed: false, Tag: m.tag}}
-						},
-						func() tea.Msg {
-							return CloseModalMsg{}
-						},
-					)
-				}
-			}
-		case tea.KeyEsc:
+	case tea.KeyPressMsg:
+		switch msg.String() {
+		case "y", "Y":
+			return m, tea.Batch(
+				func() tea.Msg {
+					return ConfirmResultMsg{Result: ConfirmResult{Confirmed: true, Tag: m.tag}}
+				},
+				func() tea.Msg {
+					return CloseModalMsg{}
+				},
+			)
+		case "n", "N":
+			return m, tea.Batch(
+				func() tea.Msg {
+					return ConfirmResultMsg{Result: ConfirmResult{Confirmed: false, Tag: m.tag}}
+				},
+				func() tea.Msg {
+					return CloseModalMsg{}
+				},
+			)
+		case "esc":
 			return m, tea.Batch(
 				func() tea.Msg {
 					return ConfirmResultMsg{Result: ConfirmResult{Confirmed: false, Tag: m.tag}}

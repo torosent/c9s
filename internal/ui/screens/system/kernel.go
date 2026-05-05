@@ -33,7 +33,7 @@ type kernelMsg []cli.SystemProperty
 // NewKernel creates a new :kernel sub-screen.
 func NewKernel(client cli.Client, clk clock.Clock, p theme.Palette) KernelModel {
 	km := keymap.Default()
-	vp := viewport.New(80, 18)
+	vp := viewport.New(viewport.WithWidth(80), viewport.WithHeight(18))
 	vp.Style = lipgloss.NewStyle()
 	return KernelModel{
 		client:   client,
@@ -73,15 +73,15 @@ func (m KernelModel) Update(msg tea.Msg) (screens.Screen, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
 		m.height = msg.Height
-		m.viewport.Width = msg.Width
+		m.viewport.SetWidth(msg.Width)
 		if msg.Height > 4 {
-			m.viewport.Height = msg.Height - 4
+			m.viewport.SetHeight(msg.Height - 4)
 		}
 		m.rebuild()
 	case kernelMsg:
 		m.props = []cli.SystemProperty(msg)
 		m.rebuild()
-	case tea.KeyMsg:
+	case tea.KeyPressMsg:
 		if m.keymap.Matches("refresh", msg) {
 			return m, m.refreshCmd()
 		}

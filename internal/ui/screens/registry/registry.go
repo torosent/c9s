@@ -119,9 +119,8 @@ func (m *Model) Update(msg tea.Msg) (screens.Screen, tea.Cmd) {
 		}
 		cmds = append(cmds, m.refreshCmd(), state.TickCmd(2*time.Second, m.clk, cli.ResourceRegistry))
 
-	case tea.MouseMsg:
-		switch msg.Button {
-		case tea.MouseButtonLeft:
+	case tea.MouseClickMsg:
+		if msg.Button == tea.MouseLeft {
 			if msg.Y >= 3 {
 				row := msg.Y - 3
 				visible := m.visibleEntries()
@@ -129,9 +128,12 @@ func (m *Model) Update(msg tea.Msg) (screens.Screen, tea.Cmd) {
 					m.tbl.SetCursor(row)
 				}
 			}
-		case tea.MouseButtonWheelUp:
+		}
+	case tea.MouseWheelMsg:
+		switch msg.Button {
+		case tea.MouseWheelUp:
 			m.tbl.MoveUp(1)
-		case tea.MouseButtonWheelDown:
+		case tea.MouseWheelDown:
 			m.tbl.MoveDown(1)
 		}
 
@@ -143,7 +145,7 @@ func (m *Model) Update(msg tea.Msg) (screens.Screen, tea.Cmd) {
 			cmds = append(cmds, m.performLogout())
 		}
 
-	case tea.KeyMsg:
+	case tea.KeyPressMsg:
 		if m.filterMode {
 			return m.handleFilterKey(msg)
 		}
@@ -336,27 +338,29 @@ func (m *Model) requestSetDefault() tea.Cmd {
 	}
 }
 
-func (m *Model) handleFilterKey(msg tea.KeyMsg) (screens.Screen, tea.Cmd) {
-	switch msg.Type {
-	case tea.KeyEnter:
+func (m *Model) handleFilterKey(msg tea.KeyPressMsg) (screens.Screen, tea.Cmd) {
+	switch msg.String() {
+	case "enter":
 		m.filterMode = false
 		m.rebuildTable()
 		return m, nil
-	case tea.KeyEsc:
+	case "esc":
 		m.filterMode = false
 		m.filter = ""
 		m.rebuildTable()
 		return m, nil
-	case tea.KeyBackspace:
+	case "backspace":
 		if len(m.filter) > 0 {
 			m.filter = m.filter[:len(m.filter)-1]
 			m.rebuildTable()
 		}
 		return m, nil
-	case tea.KeyRunes:
-		m.filter += string(msg.Runes)
-		m.rebuildTable()
-		return m, nil
+	default:
+		if msg.Text != "" {
+			m.filter += msg.Text
+			m.rebuildTable()
+			return m, nil
+		}
 	}
 	return m, nil
 }
