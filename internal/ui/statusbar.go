@@ -2,6 +2,7 @@ package ui
 
 import (
 	"charm.land/lipgloss/v2"
+	"github.com/charmbracelet/x/ansi"
 
 	"github.com/torosent/c9s/internal/ui/theme"
 )
@@ -75,15 +76,16 @@ func (s StatusBar) View(width int, readonly bool) string {
 }
 
 // truncateToWidth shortens a (possibly ANSI-styled) string to at most
-// `width` rune-wide visible columns. Naive rune-count truncation is
-// adequate for v0.1.0; a wcwidth-aware implementation can land later.
+// `width` visible columns. Uses ANSI-aware truncation so escape
+// sequences don't count toward the visible width — bubbletea v2's
+// lipgloss emits longer escape sequences than v1, which made the
+// rune-count-based truncator drop visible content prematurely.
 func truncateToWidth(s string, width int) string {
-	runes := []rune(s)
-	if len(runes) <= width {
+	if ansi.StringWidth(s) <= width {
 		return s
 	}
 	if width <= 1 {
-		return string(runes[:width])
+		return ansi.Truncate(s, width, "")
 	}
-	return string(runes[:width-1]) + "…"
+	return ansi.Truncate(s, width, "…")
 }

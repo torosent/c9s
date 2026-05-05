@@ -58,7 +58,7 @@ func TestPropertyEditFlow(t *testing.T) {
 	f := cli.NewFake()
 	m := NewProperty(f, clock.NewFake(time.Now()), theme.DefaultDark())
 	m = feedProps(t, m, sampleProps())
-	_, cmd := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'e'}})
+	_, cmd := m.Update(tea.KeyPressMsg{Code: 'e', Text: "e"})
 	if cmd == nil {
 		t.Fatal("e nil")
 	}
@@ -83,7 +83,7 @@ func TestPropertyEditReadOnlyToast(t *testing.T) {
 	m := NewProperty(f, clock.NewFake(time.Now()), theme.DefaultDark())
 	// Make only one row, RO
 	m = feedProps(t, m, []cli.SystemProperty{{Key: "version", Value: "0.4.0", ReadOnly: true}})
-	_, cmd := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'e'}})
+	_, cmd := m.Update(tea.KeyPressMsg{Code: 'e', Text: "e"})
 	if cmd == nil {
 		t.Fatal("e nil")
 	}
@@ -101,7 +101,7 @@ func TestPropertyResetFlow(t *testing.T) {
 	f := cli.NewFake()
 	m := NewProperty(f, clock.NewFake(time.Now()), theme.DefaultDark())
 	m = feedProps(t, m, sampleProps())
-	_, cmd := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'D'}})
+	_, cmd := m.Update(tea.KeyPressMsg{Code: 'D', Text: "D"})
 	if cmd == nil {
 		t.Fatal("D nil")
 	}
@@ -123,7 +123,7 @@ func TestPropertyResetReadOnlyBlocked(t *testing.T) {
 	f := cli.NewFake()
 	m := NewProperty(f, clock.NewFake(time.Now()), theme.DefaultDark())
 	m = feedProps(t, m, []cli.SystemProperty{{Key: "version", Value: "x", ReadOnly: true}})
-	_, cmd := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'D'}})
+	_, cmd := m.Update(tea.KeyPressMsg{Code: 'D', Text: "D"})
 	msg := cmd()
 	st, ok := msg.(screens.StatusMsg)
 	if !ok {
@@ -137,7 +137,7 @@ func TestPropertyResetReadOnlyBlocked(t *testing.T) {
 func TestPropertyRefreshAndFilter(t *testing.T) {
 	f := cli.NewFake()
 	m := NewProperty(f, clock.NewFake(time.Now()), theme.DefaultDark())
-	_, cmd := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'r'}})
+	_, cmd := m.Update(tea.KeyPressMsg{Code: 'r', Text: "r"})
 	if cmd == nil {
 		t.Fatal("r nil")
 	}
@@ -146,13 +146,13 @@ func TestPropertyRefreshAndFilter(t *testing.T) {
 		t.Errorf("expected ListSystemProperties: %v", f.Calls)
 	}
 	m = feedProps(t, m, sampleProps())
-	s, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'/'}})
+	s, _ := m.Update(tea.KeyPressMsg{Code: '/', Text: "/"})
 	m = s.(PropertyModel)
 	for _, r := range "build" {
-		s, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{r}})
+		s, _ = m.Update(tea.KeyPressMsg{Code: r, Text: string(r)})
 		m = s.(PropertyModel)
 	}
-	s, _ = m.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	s, _ = m.Update(tea.KeyPressMsg{Code: tea.KeyEnter})
 	m = s.(PropertyModel)
 	v := m.View(120, 30)
 	if !strings.Contains(v, "build.cache") {

@@ -68,7 +68,7 @@ func TestExpandCollapseKeys(t *testing.T) {
 	m.Update(TreeBuiltMsg{Root: root})
 
 	// Press 'e' to expand
-	m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'e'}})
+	m.Update(tea.KeyPressMsg{Code: 'e', Text: "e"})
 
 	view := m.View(80, 24)
 	if !strings.Contains(view, "Child") {
@@ -76,7 +76,7 @@ func TestExpandCollapseKeys(t *testing.T) {
 	}
 
 	// Press 'c' to collapse
-	m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'c'}})
+	m.Update(tea.KeyPressMsg{Code: 'c', Text: "c"})
 
 	view = m.View(80, 24)
 	if strings.Contains(view, "Child") {
@@ -104,7 +104,7 @@ func TestEnterEmitsJump(t *testing.T) {
 	}
 
 	// Press enter
-	_, cmd := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	_, cmd := m.Update(tea.KeyPressMsg{Code: tea.KeyEnter})
 	if cmd == nil {
 		t.Fatal("expected command after pressing enter")
 	}

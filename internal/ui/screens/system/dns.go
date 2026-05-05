@@ -150,6 +150,7 @@ func (m DNSModel) Update(msg tea.Msg) (screens.Screen, tea.Cmd) {
 
 // View implements screens.Screen.
 func (m DNSModel) View(width, height int) string {
+	(&m.tbl).SetWidth(width)
 	if m.filterMode {
 		return m.tbl.View() + "\n" + fmt.Sprintf("Filter: %s_", m.filter)
 	}

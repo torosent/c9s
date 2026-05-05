@@ -56,14 +56,14 @@ func TestServicesRender(t *testing.T) {
 func TestServicesStartStop(t *testing.T) {
 	f := cli.NewFake()
 	m := NewServices(f, clock.NewFake(time.Now()), theme.DefaultDark())
-	_, cmd := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'S'}})
+	_, cmd := m.Update(tea.KeyPressMsg{Code: 'S', Text: "S"})
 	if cmd == nil {
 		t.Fatal("S nil")
 	}
 	if msg := cmd(); msg == nil {
 		t.Errorf("expected status msg")
 	}
-	_, cmd = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'X'}})
+	_, cmd = m.Update(tea.KeyPressMsg{Code: 'X', Text: "X"})
 	if cmd == nil {
 		t.Fatal("X nil")
 	}
@@ -79,7 +79,7 @@ func TestServicesStartStop(t *testing.T) {
 func TestServicesRefresh(t *testing.T) {
 	f := cli.NewFake()
 	m := NewServices(f, clock.NewFake(time.Now()), theme.DefaultDark())
-	_, cmd := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'r'}})
+	_, cmd := m.Update(tea.KeyPressMsg{Code: 'r', Text: "r"})
 	if cmd == nil {
 		t.Fatal("r nil")
 	}
@@ -92,13 +92,13 @@ func TestServicesRefresh(t *testing.T) {
 func TestServicesFilter(t *testing.T) {
 	m := NewServices(cli.NewFake(), clock.NewFake(time.Now()), theme.DefaultDark())
 	m = feedServices(t, m, sampleServices())
-	s, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'/'}})
+	s, _ := m.Update(tea.KeyPressMsg{Code: '/', Text: "/"})
 	m = s.(ServicesModel)
 	for _, r := range "build" {
-		s, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{r}})
+		s, _ = m.Update(tea.KeyPressMsg{Code: r, Text: string(r)})
 		m = s.(ServicesModel)
 	}
-	s, _ = m.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	s, _ = m.Update(tea.KeyPressMsg{Code: tea.KeyEnter})
 	m = s.(ServicesModel)
 	v := m.View(120, 30)
 	if !strings.Contains(v, "container-builder") {
@@ -110,7 +110,7 @@ func TestServicesStartAllErr(t *testing.T) {
 	f := cli.NewFake()
 	f.SystemStartAllErr = errString("nope")
 	m := NewServices(f, clock.NewFake(time.Now()), theme.DefaultDark())
-	_, cmd := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'S'}})
+	_, cmd := m.Update(tea.KeyPressMsg{Code: 'S', Text: "S"})
 	msg := cmd()
 	st, ok := msg.(screens.StatusMsg)
 	if !ok {

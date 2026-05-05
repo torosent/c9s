@@ -19,10 +19,10 @@ func TestNewBuildFormPrefillsPath(t *testing.T) {
 func TestBuildFormSubmits(t *testing.T) {
 	m := NewBuildForm("./api", theme.DefaultDark())
 	for _, r := range "ghcr.io/me/api:1.0" {
-		m2, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{r}})
+		m2, _ := m.Update(tea.KeyPressMsg{Code: r, Text: string(r)})
 		m = m2.(BuildFormModel)
 	}
-	_, cmd := m.Update(tea.KeyMsg{Type: tea.KeyCtrlD})
+	_, cmd := m.Update(tea.KeyPressMsg{Code: 'd', Mod: tea.ModCtrl})
 	if cmd == nil {
 		t.Fatal("submit cmd nil")
 	}
@@ -49,7 +49,7 @@ func TestBuildFormSubmits(t *testing.T) {
 
 func TestBuildFormEscCancels(t *testing.T) {
 	m := NewBuildForm("", theme.DefaultDark())
-	_, cmd := m.Update(tea.KeyMsg{Type: tea.KeyEsc})
+	_, cmd := m.Update(tea.KeyPressMsg{Code: tea.KeyEsc})
 	if cmd == nil {
 		t.Fatal("Esc nil")
 	}
@@ -67,11 +67,11 @@ func TestBuildFormEscCancels(t *testing.T) {
 func TestBuildFormTabCycles(t *testing.T) {
 	m := NewBuildForm("", theme.DefaultDark())
 	for i := 0; i < buildFieldCount+2; i++ {
-		m2, _ := m.Update(tea.KeyMsg{Type: tea.KeyTab})
+		m2, _ := m.Update(tea.KeyPressMsg{Code: tea.KeyTab})
 		m = m2.(BuildFormModel)
 	}
 	for i := 0; i < buildFieldCount+1; i++ {
-		m2, _ := m.Update(tea.KeyMsg{Type: tea.KeyShiftTab})
+		m2, _ := m.Update(tea.KeyPressMsg{Code: tea.KeyTab, Mod: tea.ModShift})
 		m = m2.(BuildFormModel)
 	}
 	_ = m.View(80, 30)
@@ -81,7 +81,7 @@ func TestBuildFormEnterAdvancesAndSubmits(t *testing.T) {
 	m := NewBuildForm("./", theme.DefaultDark())
 	// Three Enters advance from tag→cf→platform→submit on platform
 	for i := 0; i < 3; i++ {
-		m2, cmd := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
+		m2, cmd := m.Update(tea.KeyPressMsg{Code: tea.KeyEnter})
 		if cmd != nil && i == 2 {
 			gotSubmit := false
 			collect(cmd, func(msg tea.Msg) {

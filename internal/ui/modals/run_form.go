@@ -112,7 +112,7 @@ func (m RunFormModel) Update(msg tea.Msg) (Modal, tea.Cmd) {
 		switch msg.String() {
 		case "ctrl+s", "ctrl+enter":
 			return m.submit()
-		case " ":
+		case "space":
 			// Toggle on bool fields
 			switch m.focus {
 			case runFieldInteractive:

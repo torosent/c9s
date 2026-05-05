@@ -185,6 +185,7 @@ func truncate(s string, max int) string {
 
 // View implements screens.Screen.
 func (m *Model) View(width, height int) string {
+	m.table.SetWidth(width)
 	if width != m.width || height != m.height {
 		m.width = width
 		m.height = height

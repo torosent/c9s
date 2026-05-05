@@ -43,7 +43,7 @@ func TestInspectEscCloses(t *testing.T) {
 	p := theme.DefaultDark()
 	m := NewInspect("Test", []byte(`{"a":1}`), p)
 
-	keyMsg := tea.KeyMsg{Type: tea.KeyEsc}
+	keyMsg := tea.KeyPressMsg{Code: tea.KeyEsc}
 	_, cmd := m.Update(keyMsg)
 
 	if cmd == nil {
@@ -60,7 +60,7 @@ func TestInspectQCloses(t *testing.T) {
 	p := theme.DefaultDark()
 	m := NewInspect("Test", []byte(`{"a":1}`), p)
 
-	keyMsg := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'q'}}
+	keyMsg := tea.KeyPressMsg{Code: 'q', Text: "q"}
 	_, cmd := m.Update(keyMsg)
 
 	if cmd == nil {

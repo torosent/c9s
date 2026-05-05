@@ -65,7 +65,7 @@ func TestViewFitsInTerminal(t *testing.T) {
 				},
 			})
 
-			view := m.View()
+			view := m.View().Content
 			gotLines := strings.Count(view, "\n") + 1
 			if gotLines != tc.height {
 				t.Errorf("View() returned %d lines for terminal %dx%d; want exactly %d (otherwise bubbletea's renderer truncates and the banner gets dropped)",
@@ -124,7 +124,7 @@ func TestViewFitsAfterScreenSized(t *testing.T) {
 	// with the full terminal height instead of the body region.
 	m, _ = m.Update(tea.WindowSizeMsg{Width: W, Height: H})
 
-	view := m.View()
+	view := m.View().Content
 	gotLines := strings.Count(view, "\n") + 1
 	if gotLines != H {
 		t.Errorf("View() returned %d lines for %dx%d terminal after second WindowSizeMsg; want %d (the screen sized its table off the full terminal height instead of the body region)",
@@ -160,7 +160,7 @@ func TestViewFitsAfterShellExec(t *testing.T) {
 	// Simulate shell exec returning.
 	m, _ = m.Update(shellExecDoneMsg{})
 
-	view := m.View()
+	view := m.View().Content
 	gotLines := strings.Count(view, "\n") + 1
 	if gotLines != H {
 		t.Errorf("post-exec View() returned %d lines for %dx%d terminal; want %d", gotLines, W, H, H)

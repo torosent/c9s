@@ -40,7 +40,7 @@ func TestConfirmYesEmitsConfirmedTrue(t *testing.T) {
 	p := theme.DefaultDark()
 	m := NewConfirm("Delete", "Sure?", []string{}, "delete", p)
 
-	keyMsg := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'y'}}
+	keyMsg := tea.KeyPressMsg{Code: 'y', Text: "y"}
 	_, cmd := m.Update(keyMsg)
 
 	if cmd == nil {
@@ -81,7 +81,7 @@ func TestConfirmNoEmitsConfirmedFalse(t *testing.T) {
 	p := theme.DefaultDark()
 	m := NewConfirm("Cancel test", "", []string{}, "delete", p)
 
-	keyMsg := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'n'}}
+	keyMsg := tea.KeyPressMsg{Code: 'n', Text: "n"}
 	_, cmd := m.Update(keyMsg)
 
 	if cmd == nil {
@@ -113,7 +113,7 @@ func TestConfirmEscEmitsConfirmedFalse(t *testing.T) {
 	p := theme.DefaultDark()
 	m := NewConfirm("Cancel test", "", []string{}, "delete", p)
 
-	keyMsg := tea.KeyMsg{Type: tea.KeyEsc}
+	keyMsg := tea.KeyPressMsg{Code: tea.KeyEsc}
 	_, cmd := m.Update(keyMsg)
 
 	if cmd == nil {

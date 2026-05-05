@@ -705,7 +705,6 @@ func (m Model) handleCommandKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		}
 		return m, nil
 	}
-	return m, nil
 }
 
 func commonPrefix(a, b string) string {

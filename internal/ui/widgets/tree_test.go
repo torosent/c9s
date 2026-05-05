@@ -110,12 +110,12 @@ func TestUpdate(t *testing.T) {
 	tree := NewTree(root)
 
 	// Test key handling
-	tree, _ = tree.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'j'}})
+	tree, _ = tree.Update(tea.KeyPressMsg{Code: 'j', Text: "j"})
 	if tree.Focused != child {
 		t.Errorf("expected focus to move to child after 'j', got %v", tree.Focused)
 	}
 
-	tree, _ = tree.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'k'}})
+	tree, _ = tree.Update(tea.KeyPressMsg{Code: 'k', Text: "k"})
 	if tree.Focused != root {
 		t.Errorf("expected focus to move to root after 'k', got %v", tree.Focused)
 	}

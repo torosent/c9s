@@ -1,10 +1,10 @@
 package containers
 
 import (
+	"image/color"
 	"testing"
 	"time"
 
-	"charm.land/lipgloss/v2"
 	"github.com/torosent/c9s/internal/ui/theme"
 )
 
@@ -97,7 +97,7 @@ func TestColorForState(t *testing.T) {
 
 	tests := []struct {
 		state    string
-		expected lipgloss.Color
+		expected color.Color
 	}{
 		{"running", p.State["running"]},
 		{"exited", p.State["exited"]},

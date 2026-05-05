@@ -64,7 +64,7 @@ func TestKernelEmpty(t *testing.T) {
 func TestKernelRefreshKey(t *testing.T) {
 	f := cli.NewFake()
 	m := NewKernel(f, clock.NewFake(time.Now()), theme.DefaultDark())
-	_, cmd := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'r'}})
+	_, cmd := m.Update(tea.KeyPressMsg{Code: 'r', Text: "r"})
 	if cmd == nil {
 		t.Fatal("r nil")
 	}

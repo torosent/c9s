@@ -26,7 +26,7 @@ func TestDefaultHasExpectedBindings(t *testing.T) {
 func TestMatchesQuit(t *testing.T) {
 	m := Default()
 
-	msg := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'q'}}
+	msg := tea.KeyPressMsg{Code: 'q', Text: "q"}
 	if !m.Matches("quit", msg) {
 		t.Error("expected 'q' to match 'quit'")
 	}
@@ -35,7 +35,7 @@ func TestMatchesQuit(t *testing.T) {
 func TestMatchesInterrupt(t *testing.T) {
 	m := Default()
 
-	msg := tea.KeyMsg{Type: tea.KeyCtrlC}
+	msg := tea.KeyPressMsg{Code: 'c', Mod: tea.ModCtrl}
 	if !m.Matches("interrupt", msg) {
 		t.Error("expected ctrl+c to match 'interrupt'")
 	}
@@ -44,7 +44,7 @@ func TestMatchesInterrupt(t *testing.T) {
 func TestMatchesHeaderToggle(t *testing.T) {
 	m := Default()
 
-	msg := tea.KeyMsg{Type: tea.KeyCtrlE}
+	msg := tea.KeyPressMsg{Code: 'e', Mod: tea.ModCtrl}
 	if !m.Matches("header_toggle", msg) {
 		t.Error("expected ctrl+e to match 'header_toggle'")
 	}
@@ -53,7 +53,7 @@ func TestMatchesHeaderToggle(t *testing.T) {
 func TestMatchesEscape(t *testing.T) {
 	m := Default()
 
-	msg := tea.KeyMsg{Type: tea.KeyEsc}
+	msg := tea.KeyPressMsg{Code: tea.KeyEsc}
 	if !m.Matches("escape", msg) {
 		t.Error("expected esc to match 'escape'")
 	}
@@ -62,7 +62,7 @@ func TestMatchesEscape(t *testing.T) {
 func TestMatchesUpVimAlias(t *testing.T) {
 	m := Default()
 
-	msg := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'k'}}
+	msg := tea.KeyPressMsg{Code: 'k', Text: "k"}
 	if !m.Matches("up", msg) {
 		t.Error("expected 'k' to match 'up'")
 	}
@@ -71,7 +71,7 @@ func TestMatchesUpVimAlias(t *testing.T) {
 func TestMatchesUpArrow(t *testing.T) {
 	m := Default()
 
-	msg := tea.KeyMsg{Type: tea.KeyUp}
+	msg := tea.KeyPressMsg{Code: tea.KeyUp}
 	if !m.Matches("up", msg) {
 		t.Error("expected arrow up to match 'up'")
 	}
@@ -84,13 +84,13 @@ func TestOverrideBinding(t *testing.T) {
 	m.Add("quit", Binding{Keys: []string{"Q"}})
 
 	// 'q' should no longer match
-	msgLowerQ := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'q'}}
+	msgLowerQ := tea.KeyPressMsg{Code: 'q', Text: "q"}
 	if m.Matches("quit", msgLowerQ) {
 		t.Error("expected 'q' to NOT match 'quit' after override")
 	}
 
 	// 'Q' should match
-	msgUpperQ := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'Q'}}
+	msgUpperQ := tea.KeyPressMsg{Code: 'Q', Text: "Q"}
 	if !m.Matches("quit", msgUpperQ) {
 		t.Error("expected 'Q' to match 'quit' after override")
 	}
@@ -131,13 +131,13 @@ func TestApply_SingleOverride(t *testing.T) {
 	m = Apply(m, overrides)
 
 	// 'q' should no longer match
-	msgLowerQ := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'q'}}
+	msgLowerQ := tea.KeyPressMsg{Code: 'q', Text: "q"}
 	if m.Matches("quit", msgLowerQ) {
 		t.Error("expected 'q' to NOT match 'quit' after override")
 	}
 
 	// 'Q' should match
-	msgUpperQ := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'Q'}}
+	msgUpperQ := tea.KeyPressMsg{Code: 'Q', Text: "Q"}
 	if !m.Matches("quit", msgUpperQ) {
 		t.Error("expected 'Q' to match 'quit' after override")
 	}
@@ -155,25 +155,25 @@ func TestApply_MultipleOverrides(t *testing.T) {
 	m = Apply(m, overrides)
 
 	// Check quit -> x
-	msgX := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'x'}}
+	msgX := tea.KeyPressMsg{Code: 'x', Text: "x"}
 	if !m.Matches("quit", msgX) {
 		t.Error("expected 'x' to match 'quit'")
 	}
 
 	// Check filter -> f
-	msgF := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'f'}}
+	msgF := tea.KeyPressMsg{Code: 'f', Text: "f"}
 	if !m.Matches("filter", msgF) {
 		t.Error("expected 'f' to match 'filter'")
 	}
 
 	// Check mark -> m
-	msgM := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'m'}}
+	msgM := tea.KeyPressMsg{Code: 'm', Text: "m"}
 	if !m.Matches("mark", msgM) {
 		t.Error("expected 'm' to match 'mark'")
 	}
 
 	// Check that unmodified bindings still work
-	msgHelp := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'?'}}
+	msgHelp := tea.KeyPressMsg{Code: '?', Text: "?"}
 	if !m.Matches("help", msgHelp) {
 		t.Error("expected '?' to still match 'help'")
 	}

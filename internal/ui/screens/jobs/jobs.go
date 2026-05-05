@@ -211,6 +211,7 @@ func (m *Model) clearDone() tea.Cmd {
 
 // View implements screens.Screen.
 func (m *Model) View(width, height int) string {
+	m.table.SetWidth(width)
 	if width > 0 && height > 0 {
 		m.table.SetWidth(width - 4)
 		m.table.SetHeight(height - 4)

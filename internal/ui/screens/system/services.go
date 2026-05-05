@@ -156,6 +156,7 @@ func (m ServicesModel) Update(msg tea.Msg) (screens.Screen, tea.Cmd) {
 
 // View implements screens.Screen.
 func (m ServicesModel) View(width, height int) string {
+	(&m.tbl).SetWidth(width)
 	if m.filterMode {
 		return m.tbl.View() + "\n" + fmt.Sprintf("Filter: %s_", m.filter)
 	}

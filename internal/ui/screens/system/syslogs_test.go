@@ -56,7 +56,7 @@ func TestLogsKeyboardScroll(t *testing.T) {
 	f := cli.NewFake()
 	m := NewLogs(f, clock.NewFake(time.Now()), theme.DefaultDark())
 	for _, key := range []string{"j", "k", "g", "G"} {
-		s, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune(key)})
+		s, _ := m.Update(tea.KeyPressMsg{Code: rune(key[0]), Text: key})
 		m = s.(*LogsModel)
 	}
 	_ = m.View(80, 24)

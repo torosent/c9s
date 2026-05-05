@@ -92,6 +92,7 @@ func (m DFModel) Update(msg tea.Msg) (screens.Screen, tea.Cmd) {
 
 // View implements screens.Screen.
 func (m DFModel) View(width, height int) string {
+	(&m.tbl).SetWidth(width)
 	help := lipgloss.NewStyle().Foreground(m.palette.Dim).Render("r: refresh")
 	return m.tbl.View() + "\n" + help
 }

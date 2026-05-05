@@ -32,7 +32,7 @@ func TestSortPicker_ReverseToggle(t *testing.T) {
 	m := NewSortPicker(cols, theme.DefaultDark())
 
 	// Press 'r' to toggle reverse
-	updatedModel, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'r'}})
+	updatedModel, _ := m.Update(tea.KeyPressMsg{Code: 'r', Text: "r"})
 	m = updatedModel.(SortPickerModel)
 
 	view := m.View(80, 24)
@@ -41,7 +41,7 @@ func TestSortPicker_ReverseToggle(t *testing.T) {
 	}
 
 	// Press 'r' again to toggle back
-	updatedModel, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'r'}})
+	updatedModel, _ = m.Update(tea.KeyPressMsg{Code: 'r', Text: "r"})
 	m = updatedModel.(SortPickerModel)
 
 	view = m.View(80, 24)
@@ -55,7 +55,7 @@ func TestSortPicker_EnterEmitsSortPickedMsg(t *testing.T) {
 	m := NewSortPicker(cols, theme.DefaultDark())
 
 	// Press enter
-	_, cmd := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	_, cmd := m.Update(tea.KeyPressMsg{Code: tea.KeyEnter})
 	if cmd == nil {
 		t.Fatal("expected cmd after pressing enter")
 	}
@@ -78,11 +78,11 @@ func TestSortPicker_EnterWithReverse(t *testing.T) {
 	m := NewSortPicker(cols, theme.DefaultDark())
 
 	// Toggle reverse first
-	updatedModel, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'r'}})
+	updatedModel, _ := m.Update(tea.KeyPressMsg{Code: 'r', Text: "r"})
 	m = updatedModel.(SortPickerModel)
 
 	// Press enter
-	_, cmd := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	_, cmd := m.Update(tea.KeyPressMsg{Code: tea.KeyEnter})
 	msg := cmd()
 	picked, ok := msg.(SortPickedMsg)
 	if !ok {
@@ -97,7 +97,7 @@ func TestSortPicker_EscEmitsCloseModalMsg(t *testing.T) {
 	cols := []SortColumn{{Key: "name", Label: "Name"}}
 	m := NewSortPicker(cols, theme.DefaultDark())
 
-	_, cmd := m.Update(tea.KeyMsg{Type: tea.KeyEsc})
+	_, cmd := m.Update(tea.KeyPressMsg{Code: tea.KeyEsc})
 	if cmd == nil {
 		t.Fatal("expected cmd after pressing esc")
 	}

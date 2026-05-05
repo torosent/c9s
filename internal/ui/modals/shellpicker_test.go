@@ -11,7 +11,7 @@ import (
 
 func TestShellPicker_HotkeyB_PicksBash(t *testing.T) {
 	picker := NewShellPicker("c1", "c1", theme.DefaultDark())
-	_, cmd := picker.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'b'}})
+	_, cmd := picker.Update(tea.KeyPressMsg{Code: 'b', Text: "b"})
 	if cmd == nil {
 		t.Fatal("expected 'b' to return a cmd")
 	}
@@ -29,7 +29,7 @@ func TestShellPicker_HotkeyB_PicksBash(t *testing.T) {
 
 func TestShellPicker_HotkeyS_PicksSh(t *testing.T) {
 	picker := NewShellPicker("c1", "c1", theme.DefaultDark())
-	_, cmd := picker.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'s'}})
+	_, cmd := picker.Update(tea.KeyPressMsg{Code: 's', Text: "s"})
 	if cmd == nil {
 		t.Fatal("expected 's' to return a cmd")
 	}
@@ -42,9 +42,9 @@ func TestShellPicker_HotkeyS_PicksSh(t *testing.T) {
 func TestShellPicker_EnterPicksCursor(t *testing.T) {
 	picker := NewShellPicker("c1", "c1", theme.DefaultDark())
 	// cursor starts at 0 (bash); arrow down to sh
-	pickerModel, _ := picker.Update(tea.KeyMsg{Type: tea.KeyDown})
+	pickerModel, _ := picker.Update(tea.KeyPressMsg{Code: tea.KeyDown})
 	picker = pickerModel.(ShellPickerModel)
-	_, cmd := picker.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	_, cmd := picker.Update(tea.KeyPressMsg{Code: tea.KeyEnter})
 	if cmd == nil {
 		t.Fatal("expected enter to return a cmd")
 	}
@@ -56,7 +56,7 @@ func TestShellPicker_EnterPicksCursor(t *testing.T) {
 
 func TestShellPicker_EscClosesWithoutPick(t *testing.T) {
 	picker := NewShellPicker("c1", "c1", theme.DefaultDark())
-	_, cmd := picker.Update(tea.KeyMsg{Type: tea.KeyEsc})
+	_, cmd := picker.Update(tea.KeyPressMsg{Code: tea.KeyEsc})
 	if cmd == nil {
 		t.Fatal("expected esc to return a cmd")
 	}

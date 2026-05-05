@@ -52,7 +52,7 @@ func TestHelpAnyKeyCloses(t *testing.T) {
 	p := theme.DefaultDark()
 	m := NewHelp(km, "Test", p)
 
-	keyMsg := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'q'}}
+	keyMsg := tea.KeyPressMsg{Code: 'q', Text: "q"}
 	_, cmd := m.Update(keyMsg)
 
 	if cmd == nil {

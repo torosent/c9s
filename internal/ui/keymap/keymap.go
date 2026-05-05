@@ -77,8 +77,10 @@ func matchesKey(keyStr string, msg tea.KeyPressMsg) bool {
 		return true
 	}
 
-	// Tolerate case differences for special-key aliases.
-	if strings.EqualFold(got, want) {
+	// Tolerate case differences for special-key aliases (e.g. "ESC" vs
+	// "esc"), but NOT single-character bindings — 'q' must not match a
+	// 'Q' override and vice versa.
+	if len(want) > 1 && len(got) > 1 && strings.EqualFold(got, want) {
 		return true
 	}
 

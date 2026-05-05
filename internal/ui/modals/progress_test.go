@@ -97,7 +97,7 @@ func TestProgressModel_BuildStepEvent(t *testing.T) {
 
 	// Render and check output
 	m.Update(tea.WindowSizeMsg{Width: 80, Height: 24})
-	output := m.View()
+	output := m.ViewString()
 	if !strings.Contains(output, "RUN apt-get update") {
 		t.Errorf("View() missing build step text, got: %s", output)
 	}
@@ -118,13 +118,13 @@ func TestProgressModel_VTogglesRaw(t *testing.T) {
 	}
 
 	// Press v
-	m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'v'}})
+	m.Update(tea.KeyPressMsg{Code: 'v', Text: "v"})
 	if !m.showRaw {
 		t.Errorf("showRaw = %v, want true after 'v'", m.showRaw)
 	}
 
 	// Press v again
-	m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'v'}})
+	m.Update(tea.KeyPressMsg{Code: 'v', Text: "v"})
 	if m.showRaw {
 		t.Errorf("showRaw = %v, want false after second 'v'", m.showRaw)
 	}
@@ -159,7 +159,7 @@ func TestProgressModel_LayerProgressEvent(t *testing.T) {
 
 	// Render and check output
 	m.Update(tea.WindowSizeMsg{Width: 80, Height: 24})
-	output := m.View()
+	output := m.ViewString()
 	if !strings.Contains(output, "abc123def456") {
 		t.Errorf("View() missing layer digest in output")
 	}
@@ -180,7 +180,7 @@ func TestProgressModel_DoubleCtrlCCancels(t *testing.T) {
 	m.jobID = "test-job-123"
 
 	// First Ctrl+C
-	m.Update(tea.KeyMsg{Type: tea.KeyCtrlC})
+	m.Update(tea.KeyPressMsg{Code: 'c', Mod: tea.ModCtrl})
 	if !m.awaitCancel {
 		t.Fatal("awaitCancel should be true after first Ctrl+C")
 	}
@@ -190,13 +190,13 @@ func TestProgressModel_DoubleCtrlCCancels(t *testing.T) {
 
 	// Check footer shows "press Ctrl+C again"
 	m.Update(tea.WindowSizeMsg{Width: 80, Height: 24})
-	output := m.View()
+	output := m.ViewString()
 	if !strings.Contains(output, "Press Ctrl+C again") {
 		t.Errorf("View() missing cancel confirmation text")
 	}
 
 	// Second Ctrl+C
-	_, cmd := m.Update(tea.KeyMsg{Type: tea.KeyCtrlC})
+	_, cmd := m.Update(tea.KeyPressMsg{Code: 'c', Mod: tea.ModCtrl})
 	if cmd == nil {
 		t.Fatal("second Ctrl+C should return CloseModal cmd")
 	}
@@ -221,7 +221,7 @@ func TestProgressModel_CancelWindowExpires(t *testing.T) {
 	m := NewProgressModel(jobs.KindBuild, "/path", stream, clock.NewFake(time.Now()))
 
 	// Press Ctrl+C once to enter the await window.
-	m.Update(tea.KeyMsg{Type: tea.KeyCtrlC})
+	m.Update(tea.KeyPressMsg{Code: 'c', Mod: tea.ModCtrl})
 	if !m.awaitCancel {
 		t.Fatal("awaitCancel should be true after first Ctrl+C")
 	}
@@ -235,7 +235,7 @@ func TestProgressModel_CancelWindowExpires(t *testing.T) {
 
 	// A stale message from a previous generation should NOT clobber a
 	// fresh await window.
-	m.Update(tea.KeyMsg{Type: tea.KeyCtrlC}) // gen advances to 2
+	m.Update(tea.KeyPressMsg{Code: 'c', Mod: tea.ModCtrl}) // gen advances to 2
 	if !m.awaitCancel {
 		t.Fatal("awaitCancel should be true after second first-Ctrl+C")
 	}
@@ -257,7 +257,7 @@ func TestProgressModel_CtrlZDetaches(t *testing.T) {
 	m.jobID = "test-job-456"
 
 	// Press Ctrl+Z
-	_, cmd := m.Update(tea.KeyMsg{Type: tea.KeyCtrlZ})
+	_, cmd := m.Update(tea.KeyPressMsg{Code: 'z', Mod: tea.ModCtrl})
 	if cmd == nil {
 		t.Fatal("Ctrl+Z should return a cmd")
 	}
@@ -295,7 +295,7 @@ func TestProgressModel_NonZeroExitCode(t *testing.T) {
 
 	// Render and check header contains "exit 1" or failure indicator
 	m.Update(tea.WindowSizeMsg{Width: 80, Height: 24})
-	output := m.View()
+	output := m.ViewString()
 	if !strings.Contains(output, "exit 1") && !strings.Contains(output, "✗") {
 		t.Errorf("View() missing failure indicator in output for failed build, got: %s", output)
 	}

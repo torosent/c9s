@@ -56,14 +56,14 @@ func TestRender(t *testing.T) {
 func TestSpaceMarkAndStar(t *testing.T) {
 	m := New(cli.NewFake(), clock.NewFake(time.Now()), theme.DefaultDark())
 	m = feed(t, m, sample())
-	s, _ := m.Update(tea.KeyMsg{Type: tea.KeySpace})
+	s, _ := m.Update(tea.KeyPressMsg{Code: tea.KeySpace})
 	m = s.(*Model)
 	if !strings.Contains(m.Summary(), "1 selected") {
 		t.Errorf("got %q", m.Summary())
 	}
-	s, _ = m.Update(tea.KeyMsg{Type: tea.KeyEsc})
+	s, _ = m.Update(tea.KeyPressMsg{Code: tea.KeyEsc})
 	m = s.(*Model)
-	s, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'*'}})
+	s, _ = m.Update(tea.KeyPressMsg{Code: '*', Text: "*"})
 	m = s.(*Model)
 	if !strings.Contains(m.Summary(), "2 selected") {
 		t.Errorf("after *: %q", m.Summary())
@@ -73,7 +73,7 @@ func TestSpaceMarkAndStar(t *testing.T) {
 func TestRefresh(t *testing.T) {
 	f := cli.NewFake()
 	m := New(f, clock.NewFake(time.Now()), theme.DefaultDark())
-	_, cmd := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'r'}})
+	_, cmd := m.Update(tea.KeyPressMsg{Code: 'r', Text: "r"})
 	if cmd == nil {
 		t.Fatal("nil cmd")
 	}
@@ -87,7 +87,7 @@ func TestInspect(t *testing.T) {
 	f := cli.NewFake()
 	m := New(f, clock.NewFake(time.Now()), theme.DefaultDark())
 	m = feed(t, m, sample())
-	_, cmd := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'d'}})
+	_, cmd := m.Update(tea.KeyPressMsg{Code: 'd', Text: "d"})
 	if cmd == nil {
 		t.Fatal("nil cmd")
 	}
@@ -100,7 +100,7 @@ func TestDeleteFlow(t *testing.T) {
 	f := cli.NewFake()
 	m := New(f, clock.NewFake(time.Now()), theme.DefaultDark())
 	m = feed(t, m, sample())
-	_, cmd := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'D'}})
+	_, cmd := m.Update(tea.KeyPressMsg{Code: 'D', Text: "D"})
 	if cmd == nil {
 		t.Fatal("nil cmd")
 	}
@@ -119,13 +119,13 @@ func TestDeleteFlow(t *testing.T) {
 func TestFilter(t *testing.T) {
 	m := New(cli.NewFake(), clock.NewFake(time.Now()), theme.DefaultDark())
 	m = feed(t, m, sample())
-	s, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'/'}})
+	s, _ := m.Update(tea.KeyPressMsg{Code: '/', Text: "/"})
 	m = s.(*Model)
 	for _, r := range "iso" {
-		s, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{r}})
+		s, _ = m.Update(tea.KeyPressMsg{Code: r, Text: string(r)})
 		m = s.(*Model)
 	}
-	s, _ = m.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	s, _ = m.Update(tea.KeyPressMsg{Code: tea.KeyEnter})
 	m = s.(*Model)
 	v := m.View(120, 30)
 	if !strings.Contains(v, "isolated") {
@@ -194,10 +194,10 @@ func TestMouseLeftClickSelectsRow(t *testing.T) {
 	f := cli.NewFake()
 	m := New(f, clock.NewFake(time.Now()), theme.DefaultDark())
 	m = feed(t, m, sample())
-	s, _ := m.Update(tea.MouseMsg{
+	s, _ := m.Update(tea.MouseClickMsg{
 		X:      5,
 		Y:      4,
-		Button: tea.MouseButtonLeft,
+		Button: tea.MouseLeft,
 	})
 	m2, ok := s.(*Model)
 	if !ok {

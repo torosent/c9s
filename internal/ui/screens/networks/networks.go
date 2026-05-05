@@ -193,6 +193,7 @@ func (m *Model) Update(msg tea.Msg) (screens.Screen, tea.Cmd) {
 
 // View implements screens.Screen.
 func (m *Model) View(width, height int) string {
+	m.tbl.SetWidth(width)
 	body := m.tbl.View()
 	if m.filterMode {
 		body = m.tbl.View() + "\n" + fmt.Sprintf("Filter: %s_", m.filter)

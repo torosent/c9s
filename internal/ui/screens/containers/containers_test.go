@@ -83,7 +83,7 @@ func TestContainersSpaceTogglesMarks(t *testing.T) {
 	m = assertModel(s)
 
 	// Press space to mark the focused row
-	keyMsg := tea.KeyMsg{Type: tea.KeySpace}
+	keyMsg := tea.KeyPressMsg{Code: tea.KeySpace}
 	s, _ = m.Update(keyMsg)
 	m = assertModel(s)
 
@@ -118,7 +118,7 @@ func TestContainersStarSelectsAll(t *testing.T) {
 	m = assertModel(s)
 
 	// Press * to select all
-	keyMsg := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'*'}}
+	keyMsg := tea.KeyPressMsg{Code: '*', Text: "*"}
 	s, _ = m.Update(keyMsg)
 	m = assertModel(s)
 
@@ -152,12 +152,12 @@ func TestContainersEscClearsMarks(t *testing.T) {
 	m = assertModel(s)
 
 	// Mark one
-	keyMsg := tea.KeyMsg{Type: tea.KeySpace}
+	keyMsg := tea.KeyPressMsg{Code: tea.KeySpace}
 	s, _ = m.Update(keyMsg)
 	m = assertModel(s)
 
 	// Now press Esc
-	escMsg := tea.KeyMsg{Type: tea.KeyEsc}
+	escMsg := tea.KeyPressMsg{Code: tea.KeyEsc}
 	s, _ = m.Update(escMsg)
 	m = assertModel(s)
 
@@ -182,7 +182,7 @@ func TestContainersRTriggersRefresh(t *testing.T) {
 	initialCalls := len(fake.Calls)
 
 	// Press 'r' to trigger manual refresh
-	keyMsg := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'r'}}
+	keyMsg := tea.KeyPressMsg{Code: 'r', Text: "r"}
 	_, cmd := m.Update(keyMsg)
 
 	if cmd != nil {
@@ -220,19 +220,19 @@ func TestContainersFilterByImageOrID(t *testing.T) {
 	m = assertModel(s)
 
 	// Enter filter mode with '/'
-	slashMsg := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'/'}}
+	slashMsg := tea.KeyPressMsg{Code: '/', Text: "/"}
 	s, _ = m.Update(slashMsg)
 	m = assertModel(s)
 
 	// Type 'ngi'
 	for _, r := range "ngi" {
-		keyMsg := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{r}}
+		keyMsg := tea.KeyPressMsg{Code: r, Text: string(r)}
 		s, _ = m.Update(keyMsg)
 		m = assertModel(s)
 	}
 
 	// Press Enter to apply filter
-	enterMsg := tea.KeyMsg{Type: tea.KeyEnter}
+	enterMsg := tea.KeyPressMsg{Code: tea.KeyEnter}
 	s, _ = m.Update(enterMsg)
 	m = assertModel(s)
 
@@ -270,7 +270,7 @@ func TestContainersDOpensInspectModal(t *testing.T) {
 	m = assertModel(s)
 
 	// Press 'd' to inspect
-	keyMsg := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'d'}}
+	keyMsg := tea.KeyPressMsg{Code: 'd', Text: "d"}
 	_, cmd := m.Update(keyMsg)
 
 	if cmd == nil {
@@ -308,7 +308,7 @@ func TestContainersXStopsContainer(t *testing.T) {
 
 	// Press 'x' to stop. Returns a tea.Batch of {stop, refresh}; drain
 	// both so we observe StopContainer AND the follow-up ListContainers.
-	keyMsg := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'x'}}
+	keyMsg := tea.KeyPressMsg{Code: 'x', Text: "x"}
 	_, cmd := m.Update(keyMsg)
 	if cmd == nil {
 		t.Fatal("expected 'x' key to return a cmd")
@@ -372,7 +372,7 @@ func TestContainersSOpensShellPicker(t *testing.T) {
 	})
 	m = assertModel(s)
 
-	_, cmd := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'s'}})
+	_, cmd := m.Update(tea.KeyPressMsg{Code: 's', Text: "s"})
 	if cmd == nil {
 		t.Fatal("expected 's' to return a cmd")
 	}
@@ -440,7 +440,7 @@ func TestContainersSOnStoppedContainerEmitsToast(t *testing.T) {
 	})
 	m = assertModel(s)
 
-	_, cmd := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'s'}})
+	_, cmd := m.Update(tea.KeyPressMsg{Code: 's', Text: "s"})
 	if cmd == nil {
 		t.Fatal("expected 's' on stopped container to return a status-toast cmd, got nil")
 	}
@@ -545,7 +545,7 @@ func TestContainersPauseUnsupportedEmitsToast(t *testing.T) {
 	m = assertModel(s)
 
 	// Press 'p' to pause
-	keyMsg := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'p'}}
+	keyMsg := tea.KeyPressMsg{Code: 'p', Text: "p"}
 	_, cmd := m.Update(keyMsg)
 
 	if cmd == nil {
@@ -739,11 +739,10 @@ func TestMouseClick(t *testing.T) {
 	cs := assertModel(s)
 
 	// Simulate mouse click at Y=5 (should select row 2, index 2)
-	mouseMsg := tea.MouseMsg{
+	mouseMsg := tea.MouseClickMsg{
 		X:      10,
 		Y:      5,
-		Action: tea.MouseActionPress,
-		Button: tea.MouseButtonLeft,
+		Button: tea.MouseLeft,
 	}
 	s, _ = cs.Update(mouseMsg)
 	cs = assertModel(s)
@@ -844,7 +843,7 @@ func TestPerformPrune_TogglesToastAndRefreshes(t *testing.T) {
 
 func TestPruneKeyBinding_FiresThroughKeymap(t *testing.T) {
 	m := New(&cli.Fake{}, clock.NewFake(time.Now()), theme.DefaultDark())
-	if !m.keymap.Matches("prune", tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'P'}}) {
+	if !m.keymap.Matches("prune", tea.KeyPressMsg{Code: 'P', Text: "P"}) {
 		t.Error("Shift+P (capital P) should match the 'prune' keymap binding")
 	}
 }

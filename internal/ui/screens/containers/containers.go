@@ -326,6 +326,10 @@ func (m *Model) Update(msg tea.Msg) (screens.Screen, tea.Cmd) {
 
 // View implements screens.Screen.
 func (m *Model) View(width, height int) string {
+	if width > 0 && m.tbl.Width() != width-4 {
+		m.width = width
+		m.reflowColumns()
+	}
 	body := m.tbl.View()
 	if m.filterMode {
 		body = m.tbl.View() + "\n" + fmt.Sprintf("Filter: %s_", m.filter)
