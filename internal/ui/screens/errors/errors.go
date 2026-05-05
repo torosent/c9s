@@ -11,8 +11,8 @@ import (
 	"time"
 
 	"github.com/atotto/clipboard"
-	"github.com/charmbracelet/bubbles/table"
-	tea "github.com/charmbracelet/bubbletea"
+	"charm.land/bubbles/v2/table"
+	tea "charm.land/bubbletea/v2"
 	"github.com/torosent/c9s/internal/clock"
 	"github.com/torosent/c9s/internal/log"
 	"github.com/torosent/c9s/internal/ui/keymap"

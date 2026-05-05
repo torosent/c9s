@@ -4,7 +4,7 @@ package widgets
 import (
 	"strings"
 
-	tea "github.com/charmbracelet/bubbletea"
+	tea "charm.land/bubbletea/v2"
 )
 
 // Node represents a tree node.

@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	tea "github.com/charmbracelet/bubbletea"
+	tea "charm.land/bubbletea/v2"
 	"github.com/torosent/c9s/internal/cli"
 	"github.com/torosent/c9s/internal/clock"
 	"github.com/torosent/c9s/internal/state"

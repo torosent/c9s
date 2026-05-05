@@ -1,7 +1,7 @@
 package screens
 
 import (
-	tea "github.com/charmbracelet/bubbletea"
+	tea "charm.land/bubbletea/v2"
 	"github.com/torosent/c9s/internal/ui/keymap"
 	"github.com/torosent/c9s/internal/ui/modals"
 	"github.com/torosent/c9s/internal/ui/theme"

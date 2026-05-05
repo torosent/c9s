@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	tea "github.com/charmbracelet/bubbletea"
+	tea "charm.land/bubbletea/v2"
 	"github.com/torosent/c9s/internal/cli"
 	"github.com/torosent/c9s/internal/ui/theme"
 	"github.com/torosent/c9s/internal/ui/widgets"

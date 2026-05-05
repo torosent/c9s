@@ -3,7 +3,7 @@ package breadcrumbs
 import (
 	"strings"
 
-	"github.com/charmbracelet/lipgloss"
+	"charm.land/lipgloss/v2"
 )
 
 // Crumb represents a single breadcrumb in the navigation trail.

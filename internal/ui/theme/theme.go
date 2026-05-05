@@ -2,7 +2,7 @@
 // Plan 5 will add TOML-driven custom skins; v0.1.0 ships DefaultDark only.
 package theme
 
-import "github.com/charmbracelet/lipgloss"
+import "charm.land/lipgloss/v2"
 
 // Palette is the resolved set of colors a screen renders with.
 type Palette struct {
