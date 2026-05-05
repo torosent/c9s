@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	tea "github.com/charmbracelet/bubbletea"
+	tea "charm.land/bubbletea/v2"
 	"github.com/torosent/c9s/internal/cli"
 )
 
@@ -134,17 +134,17 @@ func TestLogViewer_FilterInput(t *testing.T) {
 	m.Update(logEventMsg{sourceName: "test", event: cli.RawLine{Text: "info: good thing"}})
 
 	// Press `/`
-	m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'/'}})
+	m.Update(tea.KeyPressMsg{Code: '/', Text: "/"})
 
 	// Type "error"
-	m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'e'}})
-	m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'r'}})
-	m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'r'}})
-	m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'o'}})
-	m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'r'}})
+	m.Update(tea.KeyPressMsg{Code: 'e', Text: "e"})
+	m.Update(tea.KeyPressMsg{Code: 'r', Text: "r"})
+	m.Update(tea.KeyPressMsg{Code: 'r', Text: "r"})
+	m.Update(tea.KeyPressMsg{Code: 'o', Text: "o"})
+	m.Update(tea.KeyPressMsg{Code: 'r', Text: "r"})
 
 	// Press Enter
-	m.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	m.Update(tea.KeyPressMsg{Code: tea.KeyEnter})
 
 	// Check that filter is set
 	if m.filter != "error" {
@@ -173,13 +173,13 @@ func TestLogViewer_GKeyResetsScroll(t *testing.T) {
 	m := NewLogViewer(sources)
 
 	// Scroll up (sets userScrolled=true)
-	m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'k'}})
+	m.Update(tea.KeyPressMsg{Code: 'k', Text: "k"})
 	if !m.userScrolled {
 		t.Fatal("userScrolled should be true after 'k'")
 	}
 
 	// Press G
-	m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'G'}})
+	m.Update(tea.KeyPressMsg{Code: 'G', Text: "G"})
 
 	// Check userScrolled is false
 	if m.userScrolled {
@@ -210,25 +210,25 @@ func TestLogViewer_ToggleTimestamps(t *testing.T) {
 	}
 
 	// Press `t`
-	m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'t'}})
+	m.Update(tea.KeyPressMsg{Code: 't', Text: "t"})
 	if !m.showTime {
 		t.Errorf("showTime = %v, want true after 't'", m.showTime)
 	}
 
 	// Press `t` again
-	m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'t'}})
+	m.Update(tea.KeyPressMsg{Code: 't', Text: "t"})
 	if m.showTime {
 		t.Errorf("showTime = %v, want false after second 't'", m.showTime)
 	}
 
 	// Press `T`
-	m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'T'}})
+	m.Update(tea.KeyPressMsg{Code: 'T', Text: "T"})
 	if !m.showRelTime {
 		t.Errorf("showRelTime = %v, want true after 'T'", m.showRelTime)
 	}
 
 	// Press `T` again
-	m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'T'}})
+	m.Update(tea.KeyPressMsg{Code: 'T', Text: "T"})
 	if m.showRelTime {
 		t.Errorf("showRelTime = %v, want false after second 'T'", m.showRelTime)
 	}
@@ -249,7 +249,7 @@ func TestLogViewer_CtrlSSavesToFile(t *testing.T) {
 	m.Update(logEventMsg{sourceName: "test", event: cli.RawLine{Text: "saved line"}})
 
 	// Press Ctrl+S
-	_, cmd := m.Update(tea.KeyMsg{Type: tea.KeyCtrlS})
+	_, cmd := m.Update(tea.KeyPressMsg{Code: 's', Mod: tea.ModCtrl})
 
 	// Execute the cmd to save
 	if cmd == nil {
@@ -277,7 +277,7 @@ func TestLogViewer_QuitKey(t *testing.T) {
 	m := NewLogViewer(sources)
 
 	// Press `q`
-	_, cmd := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'q'}})
+	_, cmd := m.Update(tea.KeyPressMsg{Code: 'q', Text: "q"})
 	if cmd == nil {
 		t.Fatal("'q' should return a cmd")
 	}
@@ -289,7 +289,7 @@ func TestLogViewer_QuitKey(t *testing.T) {
 
 	// Press Esc
 	m2 := NewLogViewer(sources)
-	_, cmd2 := m2.Update(tea.KeyMsg{Type: tea.KeyEsc})
+	_, cmd2 := m2.Update(tea.KeyPressMsg{Code: tea.KeyEsc})
 	if cmd2 == nil {
 		t.Fatal("'esc' should return a cmd")
 	}

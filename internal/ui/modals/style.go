@@ -1,8 +1,8 @@
 package modals
 
 import (
-	"github.com/charmbracelet/bubbles/textinput"
-	"github.com/charmbracelet/lipgloss"
+	"charm.land/bubbles/v2/textinput"
+	"charm.land/lipgloss/v2"
 
 	"github.com/torosent/c9s/internal/ui/theme"
 )
@@ -12,12 +12,21 @@ import (
 // cursor cells all show the skin's bg/fg — preventing the terminal's
 // default (often black) bg from leaking through inside themed modals.
 func styleTextInput(t *textinput.Model, p theme.Palette) {
-	t.PromptStyle = lipgloss.NewStyle().Foreground(p.Dim).Background(p.Bg)
-	t.TextStyle = lipgloss.NewStyle().Foreground(p.Fg).Background(p.Bg)
-	t.PlaceholderStyle = lipgloss.NewStyle().Foreground(p.Dim).Background(p.Bg)
-	t.CompletionStyle = lipgloss.NewStyle().Foreground(p.Dim).Background(p.Bg)
-	t.Cursor.Style = lipgloss.NewStyle().Foreground(p.Bg).Background(p.Accent)
-	t.Cursor.TextStyle = lipgloss.NewStyle().Foreground(p.Fg).Background(p.Bg)
+	styles := t.Styles()
+	prompt := lipgloss.NewStyle().Foreground(p.Dim).Background(p.Bg)
+	textStyle := lipgloss.NewStyle().Foreground(p.Fg).Background(p.Bg)
+	placeholder := lipgloss.NewStyle().Foreground(p.Dim).Background(p.Bg)
+	suggestion := lipgloss.NewStyle().Foreground(p.Dim).Background(p.Bg)
+	styles.Focused.Prompt = prompt
+	styles.Focused.Text = textStyle
+	styles.Focused.Placeholder = placeholder
+	styles.Focused.Suggestion = suggestion
+	styles.Blurred.Prompt = prompt
+	styles.Blurred.Text = textStyle
+	styles.Blurred.Placeholder = placeholder
+	styles.Blurred.Suggestion = suggestion
+	styles.Cursor.Color = p.Accent
+	t.SetStyles(styles)
 }
 
 // renderTextInput renders a textinput.Model and pads/wraps it to
@@ -30,7 +39,7 @@ func styleTextInput(t *textinput.Model, p theme.Palette) {
 // input with its internal Width = 0 (no embedded padding) and then
 // pad ourselves with bg-styled space cells.
 func renderTextInput(t textinput.Model, p theme.Palette, width int) string {
-	t.Width = 0
+	t.SetWidth(0)
 	bg := lipgloss.NewStyle().Foreground(p.Fg).Background(p.Bg)
 	return bg.Width(width).Render(t.View())
 }

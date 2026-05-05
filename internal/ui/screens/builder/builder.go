@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
+	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
 	"github.com/torosent/c9s/internal/cli"
 	"github.com/torosent/c9s/internal/clock"
 	"github.com/torosent/c9s/internal/state"
@@ -83,7 +83,7 @@ func (m *Model) Update(msg tea.Msg) (screens.Screen, tea.Cmd) {
 			cmds = append(cmds, m.deleteBuilder())
 		}
 
-	case tea.KeyMsg:
+	case tea.KeyPressMsg:
 		if m.keymap.Matches("refresh", msg) {
 			return m, m.refreshCmd()
 		}

@@ -1,6 +1,6 @@
 package modals
 
-import tea "github.com/charmbracelet/bubbletea"
+import tea "charm.land/bubbletea/v2"
 
 // Modal represents a temporary overlay UI (e.g., confirm dialog, help screen).
 type Modal interface {

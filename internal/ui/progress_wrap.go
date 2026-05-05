@@ -1,7 +1,7 @@
 package ui
 
 import (
-	tea "github.com/charmbracelet/bubbletea"
+	tea "charm.land/bubbletea/v2"
 	"github.com/torosent/c9s/internal/ui/modals"
 )
 
@@ -37,7 +37,7 @@ func (w progressModalWrap) View(width, height int) string {
 	if w.p == nil {
 		return ""
 	}
-	return w.p.View()
+	return w.p.ViewString()
 }
 
 // Title implements modals.Modal.

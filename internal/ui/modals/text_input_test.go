@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	tea "github.com/charmbracelet/bubbletea"
+	tea "charm.land/bubbletea/v2"
 	"github.com/torosent/c9s/internal/ui/theme"
 )
 
@@ -25,10 +25,10 @@ func TestNewTextInput(t *testing.T) {
 func TestTextInputEnterEmitsResult(t *testing.T) {
 	m := NewTextInput("create-dns", "Name?", "", theme.DefaultDark())
 	for _, r := range "myzone.local" {
-		m2, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{r}})
+		m2, _ := m.Update(tea.KeyPressMsg{Code: r, Text: string(r)})
 		m = m2.(TextInputModel)
 	}
-	_, cmd := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	_, cmd := m.Update(tea.KeyPressMsg{Code: tea.KeyEnter})
 	if cmd == nil {
 		t.Fatal("Enter returned nil")
 	}
@@ -52,7 +52,7 @@ func TestTextInputEnterEmitsResult(t *testing.T) {
 
 func TestTextInputEscEmitsCancel(t *testing.T) {
 	m := NewTextInput("save", "Path?", "", theme.DefaultDark())
-	_, cmd := m.Update(tea.KeyMsg{Type: tea.KeyEsc})
+	_, cmd := m.Update(tea.KeyPressMsg{Code: tea.KeyEsc})
 	if cmd == nil {
 		t.Fatal("Esc returned nil")
 	}
@@ -78,7 +78,7 @@ func TestTextInputValidatorBlocksSubmit(t *testing.T) {
 			}
 			return ""
 		})
-	_, cmd := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	_, cmd := m.Update(tea.KeyPressMsg{Code: tea.KeyEnter})
 	if cmd != nil {
 		// Should not produce a result/close pair if validation failed
 		seenResult := false
@@ -102,10 +102,10 @@ func TestTextInputValidatorPassesAfterTyping(t *testing.T) {
 			return ""
 		})
 	for _, r := range "v1" {
-		m2, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{r}})
+		m2, _ := m.Update(tea.KeyPressMsg{Code: r, Text: string(r)})
 		m = m2.(TextInputModel)
 	}
-	_, cmd := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	_, cmd := m.Update(tea.KeyPressMsg{Code: tea.KeyEnter})
 	if cmd == nil {
 		t.Fatal("Enter cmd nil")
 	}
@@ -125,7 +125,7 @@ func TestTextInputViewShowsValidatorMessage(t *testing.T) {
 		WithValidator(func(v string) string {
 			return "must include letters"
 		})
-	m2, _ := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	m2, _ := m.Update(tea.KeyPressMsg{Code: tea.KeyEnter})
 	m = m2.(TextInputModel)
 	v := m.View(80, 20)
 	if !strings.Contains(v, "must include letters") {

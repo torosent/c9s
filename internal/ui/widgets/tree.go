@@ -4,7 +4,7 @@ package widgets
 import (
 	"strings"
 
-	tea "github.com/charmbracelet/bubbletea"
+	tea "charm.land/bubbletea/v2"
 )
 
 // Node represents a tree node.
@@ -42,7 +42,7 @@ func (t TreeModel) Init() tea.Cmd {
 // Update implements tea.Model.
 func (t TreeModel) Update(msg tea.Msg) (TreeModel, tea.Cmd) {
 	switch msg := msg.(type) {
-	case tea.KeyMsg:
+	case tea.KeyPressMsg:
 		switch msg.String() {
 		case "up", "k":
 			t.MoveUp()

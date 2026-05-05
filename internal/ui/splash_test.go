@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	tea "github.com/charmbracelet/bubbletea"
+	tea "charm.land/bubbletea/v2"
 
 	"github.com/torosent/c9s/internal/ui/theme"
 )
@@ -22,7 +22,7 @@ func TestSplashViewMentionsVersion(t *testing.T) {
 
 func TestSplashAnyKeyEmitsDoneMsg(t *testing.T) {
 	s := NewSplash(theme.DefaultDark(), "c9s 0.1.0")
-	_, cmd := s.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'q'}})
+	_, cmd := s.Update(tea.KeyPressMsg{Code: 'q', Text: "q"})
 	if cmd == nil {
 		t.Fatal("expected a tea.Cmd")
 	}

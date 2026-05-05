@@ -2,15 +2,15 @@ package containers
 
 import (
 	"context"
-	"os"
 	"strings"
 	"testing"
 	"time"
 
-	tea "github.com/charmbracelet/bubbletea"
+	tea "charm.land/bubbletea/v2"
 	"github.com/torosent/c9s/internal/cli"
 	"github.com/torosent/c9s/internal/clock"
 	"github.com/torosent/c9s/internal/state"
+	"github.com/torosent/c9s/internal/ui/modals"
 	"github.com/torosent/c9s/internal/ui/screens"
 	"github.com/torosent/c9s/internal/ui/theme"
 )
@@ -83,7 +83,7 @@ func TestContainersSpaceTogglesMarks(t *testing.T) {
 	m = assertModel(s)
 
 	// Press space to mark the focused row
-	keyMsg := tea.KeyMsg{Type: tea.KeySpace}
+	keyMsg := tea.KeyPressMsg{Code: tea.KeySpace}
 	s, _ = m.Update(keyMsg)
 	m = assertModel(s)
 
@@ -118,7 +118,7 @@ func TestContainersStarSelectsAll(t *testing.T) {
 	m = assertModel(s)
 
 	// Press * to select all
-	keyMsg := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'*'}}
+	keyMsg := tea.KeyPressMsg{Code: '*', Text: "*"}
 	s, _ = m.Update(keyMsg)
 	m = assertModel(s)
 
@@ -152,12 +152,12 @@ func TestContainersEscClearsMarks(t *testing.T) {
 	m = assertModel(s)
 
 	// Mark one
-	keyMsg := tea.KeyMsg{Type: tea.KeySpace}
+	keyMsg := tea.KeyPressMsg{Code: tea.KeySpace}
 	s, _ = m.Update(keyMsg)
 	m = assertModel(s)
 
 	// Now press Esc
-	escMsg := tea.KeyMsg{Type: tea.KeyEsc}
+	escMsg := tea.KeyPressMsg{Code: tea.KeyEsc}
 	s, _ = m.Update(escMsg)
 	m = assertModel(s)
 
@@ -182,7 +182,7 @@ func TestContainersRTriggersRefresh(t *testing.T) {
 	initialCalls := len(fake.Calls)
 
 	// Press 'r' to trigger manual refresh
-	keyMsg := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'r'}}
+	keyMsg := tea.KeyPressMsg{Code: 'r', Text: "r"}
 	_, cmd := m.Update(keyMsg)
 
 	if cmd != nil {
@@ -220,19 +220,19 @@ func TestContainersFilterByImageOrID(t *testing.T) {
 	m = assertModel(s)
 
 	// Enter filter mode with '/'
-	slashMsg := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'/'}}
+	slashMsg := tea.KeyPressMsg{Code: '/', Text: "/"}
 	s, _ = m.Update(slashMsg)
 	m = assertModel(s)
 
 	// Type 'ngi'
 	for _, r := range "ngi" {
-		keyMsg := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{r}}
+		keyMsg := tea.KeyPressMsg{Code: r, Text: string(r)}
 		s, _ = m.Update(keyMsg)
 		m = assertModel(s)
 	}
 
 	// Press Enter to apply filter
-	enterMsg := tea.KeyMsg{Type: tea.KeyEnter}
+	enterMsg := tea.KeyPressMsg{Code: tea.KeyEnter}
 	s, _ = m.Update(enterMsg)
 	m = assertModel(s)
 
@@ -270,7 +270,7 @@ func TestContainersDOpensInspectModal(t *testing.T) {
 	m = assertModel(s)
 
 	// Press 'd' to inspect
-	keyMsg := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'d'}}
+	keyMsg := tea.KeyPressMsg{Code: 'd', Text: "d"}
 	_, cmd := m.Update(keyMsg)
 
 	if cmd == nil {
@@ -306,73 +306,207 @@ func TestContainersXStopsContainer(t *testing.T) {
 	s, _ := m.Update(msg)
 	m = assertModel(s)
 
-	// Press 'x' to stop
-	keyMsg := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'x'}}
+	// Press 'x' to stop. Returns a tea.Batch of {stop, refresh}; drain
+	// both so we observe StopContainer AND the follow-up ListContainers.
+	keyMsg := tea.KeyPressMsg{Code: 'x', Text: "x"}
 	_, cmd := m.Update(keyMsg)
-
-	if cmd != nil {
-		_ = cmd()
+	if cmd == nil {
+		t.Fatal("expected 'x' key to return a cmd")
 	}
+	drainBatch(cmd)
 
-	// Check that StopContainer was called
-	found := false
-	for _, call := range fake.Calls {
-		if call == "StopContainer" {
-			found = true
-			break
-		}
+	// Check that StopContainer AND a follow-up ListContainers were called
+	if !calledOnce(fake.Calls, "StopContainer") {
+		t.Errorf("expected StopContainer to be called; calls=%v", fake.Calls)
 	}
-	if !found {
-		t.Error("expected StopContainer to be called")
+	if !calledOnce(fake.Calls, "ListContainers") {
+		t.Errorf("expected ListContainers refresh after stop; calls=%v", fake.Calls)
 	}
 }
 
-func TestContainersSEmitsSuspendShellMsg(t *testing.T) {
+// drainBatch invokes every Cmd inside a tea.Batch'd Cmd. tea.Batch
+// returns a Cmd that yields a tea.BatchMsg ([]Cmd) when called; we then
+// run each inner Cmd. Used so action+refresh batches actually exercise
+// both legs in tests.
+func drainBatch(cmd tea.Cmd) {
+	if cmd == nil {
+		return
+	}
+	msg := cmd()
+	batch, ok := msg.(tea.BatchMsg)
+	if !ok {
+		return
+	}
+	for _, c := range batch {
+		if c != nil {
+			_ = c()
+		}
+	}
+}
+
+func calledOnce(calls []string, want string) bool {
+	for _, c := range calls {
+		if c == want {
+			return true
+		}
+	}
+	return false
+}
+
+// TestContainersSOpensShellPicker — pressing 's' on a running
+// container now opens the shell-picker modal rather than emitting a
+// SuspendShellMsg directly. The picker decides between bash and sh,
+// since the host's $SHELL (often /bin/zsh on macOS) is rarely present
+// inside Linux containers.
+func TestContainersSOpensShellPicker(t *testing.T) {
 	fake := &cli.Fake{
 		ListContainersResp: []cli.Container{
-			{ID: "c1", ShortID: "c1", Image: "nginx", Status: "running"},
+			{ID: "c1running", ShortID: "c1running", Image: "nginx", Status: "running"},
 		},
 	}
-	clk := clock.NewFake(time.Now())
-	p := theme.DefaultDark()
-
-	m := New(fake, clk, p)
+	m := New(fake, clock.NewFake(time.Now()), theme.DefaultDark())
 	m.Init()
-
-	snapshot := state.Snapshot[cli.Container]{
-		Items:     fake.ListContainersResp,
-		FetchedAt: time.Now(),
-	}
-	msg := state.RefreshedMsg[cli.Container]{
+	s, _ := m.Update(state.RefreshedMsg[cli.Container]{
 		Resource: cli.ResourceContainers,
-		Snapshot: snapshot,
-	}
-	s, _ := m.Update(msg)
+		Snapshot: state.Snapshot[cli.Container]{Items: fake.ListContainersResp, FetchedAt: time.Now()},
+	})
 	m = assertModel(s)
 
-	// Press 's' to open shell
-	keyMsg := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'s'}}
-	_, cmd := m.Update(keyMsg)
-
+	_, cmd := m.Update(tea.KeyPressMsg{Code: 's', Text: "s"})
 	if cmd == nil {
-		t.Fatal("expected 's' key to return a cmd")
+		t.Fatal("expected 's' to return a cmd")
 	}
+	switch out := cmd().(type) {
+	case screens.OpenModalMsg:
+		if _, ok := out.Modal.(modals.ShellPickerModel); !ok {
+			t.Errorf("expected ShellPickerModel, got %T", out.Modal)
+		}
+	case screens.SuspendShellMsg:
+		t.Fatalf("expected OpenModalMsg(ShellPickerModel), got SuspendShellMsg — picker bypassed")
+	default:
+		t.Fatalf("expected OpenModalMsg, got %T", out)
+	}
+}
 
-	cmdMsg := cmd()
-	if suspendMsg, ok := cmdMsg.(screens.SuspendShellMsg); !ok {
-		t.Errorf("expected SuspendShellMsg, got %T", cmdMsg)
-	} else {
-		if suspendMsg.ID != "c1" {
-			t.Errorf("expected ID='c1', got %q", suspendMsg.ID)
+// TestContainersShellPickedConvertsToSuspend — once the user picks a
+// shell, the modal emits ShellPickedMsg; the containers screen
+// converts that to SuspendShellMsg for the app-level ExecProcess
+// handler.
+func TestContainersShellPickedConvertsToSuspend(t *testing.T) {
+	fake := &cli.Fake{
+		ListContainersResp: []cli.Container{
+			{ID: "c1pick", ShortID: "c1pick", Image: "nginx", Status: "running"},
+		},
+	}
+	m := New(fake, clock.NewFake(time.Now()), theme.DefaultDark())
+	m.Init()
+	s, _ := m.Update(state.RefreshedMsg[cli.Container]{
+		Resource: cli.ResourceContainers,
+		Snapshot: state.Snapshot[cli.Container]{Items: fake.ListContainersResp, FetchedAt: time.Now()},
+	})
+	m = assertModel(s)
+
+	_, cmd := m.Update(modals.ShellPickedMsg{ID: "c1pick", Shell: "/bin/bash"})
+	if cmd == nil {
+		t.Fatal("expected ShellPickedMsg to return a cmd")
+	}
+	suspendMsg, ok := cmd().(screens.SuspendShellMsg)
+	if !ok {
+		t.Fatalf("expected SuspendShellMsg, got %T", cmd())
+	}
+	if suspendMsg.ID != "c1pick" {
+		t.Errorf("ID = %q, want c1pick", suspendMsg.ID)
+	}
+	if suspendMsg.Shell != "/bin/bash" {
+		t.Errorf("Shell = %q, want /bin/bash", suspendMsg.Shell)
+	}
+}
+
+// Regression test: pressing 's' on a non-running container should NOT
+// emit a SuspendShellMsg, because `container exec -it` against a
+// stopped container exits immediately and the user gets no feedback.
+// Instead the screen surfaces a clear toast.
+func TestContainersSOnStoppedContainerEmitsToast(t *testing.T) {
+	fake := &cli.Fake{
+		ListContainersResp: []cli.Container{
+			{ID: "c1stopped", ShortID: "c1stopped", Image: "nginx", Status: "stopped"},
+		},
+	}
+	m := New(fake, clock.NewFake(time.Now()), theme.DefaultDark())
+	m.Init()
+	s, _ := m.Update(state.RefreshedMsg[cli.Container]{
+		Resource: cli.ResourceContainers,
+		Snapshot: state.Snapshot[cli.Container]{Items: fake.ListContainersResp, FetchedAt: time.Now()},
+	})
+	m = assertModel(s)
+
+	_, cmd := m.Update(tea.KeyPressMsg{Code: 's', Text: "s"})
+	if cmd == nil {
+		t.Fatal("expected 's' on stopped container to return a status-toast cmd, got nil")
+	}
+	switch out := cmd().(type) {
+	case screens.SuspendShellMsg:
+		t.Fatalf("expected status toast, got SuspendShellMsg %+v — `container exec -it` would have failed silently", out)
+	case screens.StatusMsg:
+		if !strings.Contains(out.Toast, "stopped") {
+			t.Errorf("toast should mention stopped state; got %q", out.Toast)
 		}
-		// Shell should be from SHELL env or default /bin/sh
-		expectedShell := os.Getenv("SHELL")
-		if expectedShell == "" {
-			expectedShell = "/bin/sh"
-		}
-		if suspendMsg.Shell != expectedShell {
-			t.Errorf("expected Shell=%q, got %q", expectedShell, suspendMsg.Shell)
-		}
+	default:
+		t.Fatalf("expected StatusMsg, got %T", out)
+	}
+}
+
+// Regression test: the kill/restart/pause helpers all batch the action
+// with a follow-up ListContainers refresh so the table reflects the new
+// state without waiting for the 2-second poll tick.
+func TestLifecycleActionsRefreshAfterAction(t *testing.T) {
+	cases := []struct {
+		name      string
+		fakeReset func(*cli.Fake)
+		runAction func(*Model) tea.Cmd
+		wantCall  string
+	}{
+		{
+			name:      "kill",
+			runAction: func(m *Model) tea.Cmd { return m.killSelected() },
+			wantCall:  "KillContainer",
+		},
+		{
+			name:      "restart",
+			runAction: func(m *Model) tea.Cmd { return m.restartSelected() },
+			wantCall:  "RestartContainer",
+		},
+		{
+			name:      "pause",
+			runAction: func(m *Model) tea.Cmd { return m.pauseSelected() },
+			wantCall:  "PauseContainer",
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			fake := &cli.Fake{
+				ListContainersResp: []cli.Container{
+					{ID: "c1", ShortID: "c1", Image: "nginx", Status: "running"},
+				},
+			}
+			m := New(fake, clock.NewFake(time.Now()), theme.DefaultDark())
+			m.Init()
+			s, _ := m.Update(state.RefreshedMsg[cli.Container]{
+				Resource: cli.ResourceContainers,
+				Snapshot: state.Snapshot[cli.Container]{Items: fake.ListContainersResp, FetchedAt: time.Now()},
+			})
+			m = assertModel(s)
+
+			fake.Calls = nil
+			drainBatch(tc.runAction(m))
+
+			if !calledOnce(fake.Calls, tc.wantCall) {
+				t.Errorf("expected %s to be called; calls=%v", tc.wantCall, fake.Calls)
+			}
+			if !calledOnce(fake.Calls, "ListContainers") {
+				t.Errorf("expected follow-up ListContainers refresh after %s; calls=%v", tc.name, fake.Calls)
+			}
+		})
 	}
 }
 
@@ -411,7 +545,7 @@ func TestContainersPauseUnsupportedEmitsToast(t *testing.T) {
 	m = assertModel(s)
 
 	// Press 'p' to pause
-	keyMsg := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'p'}}
+	keyMsg := tea.KeyPressMsg{Code: 'p', Text: "p"}
 	_, cmd := m.Update(keyMsg)
 
 	if cmd == nil {
@@ -605,11 +739,10 @@ func TestMouseClick(t *testing.T) {
 	cs := assertModel(s)
 
 	// Simulate mouse click at Y=5 (should select row 2, index 2)
-	mouseMsg := tea.MouseMsg{
+	mouseMsg := tea.MouseClickMsg{
 		X:      10,
 		Y:      5,
-		Action: tea.MouseActionPress,
-		Button: tea.MouseButtonLeft,
+		Button: tea.MouseLeft,
 	}
 	s, _ = cs.Update(mouseMsg)
 	cs = assertModel(s)
@@ -710,7 +843,7 @@ func TestPerformPrune_TogglesToastAndRefreshes(t *testing.T) {
 
 func TestPruneKeyBinding_FiresThroughKeymap(t *testing.T) {
 	m := New(&cli.Fake{}, clock.NewFake(time.Now()), theme.DefaultDark())
-	if !m.keymap.Matches("prune", tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'P'}}) {
+	if !m.keymap.Matches("prune", tea.KeyPressMsg{Code: 'P', Text: "P"}) {
 		t.Error("Shift+P (capital P) should match the 'prune' keymap binding")
 	}
 }

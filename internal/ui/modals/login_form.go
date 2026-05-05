@@ -3,9 +3,9 @@ package modals
 import (
 	"strings"
 
-	"github.com/charmbracelet/bubbles/textinput"
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
+	"charm.land/bubbles/v2/textinput"
+	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
 	"github.com/torosent/c9s/internal/ui/theme"
 )
 
@@ -42,7 +42,7 @@ func NewLogin(hostHint string, p theme.Palette) LoginModel {
 	host.Placeholder = "ghcr.io"
 	host.Prompt = "Host:     "
 	host.CharLimit = 128
-	host.Width = 40
+	host.SetWidth(40)
 	styleTextInput(&host, p)
 	if hostHint != "" {
 		host.SetValue(hostHint)
@@ -52,14 +52,14 @@ func NewLogin(hostHint string, p theme.Palette) LoginModel {
 	user.Placeholder = "username"
 	user.Prompt = "User:     "
 	user.CharLimit = 128
-	user.Width = 40
+	user.SetWidth(40)
 	styleTextInput(&user, p)
 
 	pass := textinput.New()
 	pass.Placeholder = "(typed characters are masked)"
 	pass.Prompt = "Password: "
 	pass.CharLimit = 256
-	pass.Width = 40
+	pass.SetWidth(40)
 	pass.EchoMode = textinput.EchoPassword
 	pass.EchoCharacter = '*'
 	styleTextInput(&pass, p)
@@ -83,14 +83,14 @@ func (m LoginModel) Init() tea.Cmd { return textinput.Blink }
 // Update implements Modal.
 func (m LoginModel) Update(msg tea.Msg) (Modal, tea.Cmd) {
 	switch msg := msg.(type) {
-	case tea.KeyMsg:
-		switch msg.Type {
-		case tea.KeyEsc:
+	case tea.KeyPressMsg:
+		switch msg.String() {
+		case "esc":
 			return m, tea.Batch(
 				func() tea.Msg { return LoginCancelledMsg{} },
 				CloseModal(),
 			)
-		case tea.KeyEnter:
+		case "enter":
 			if m.focus < 2 {
 				m.focus++
 				m.applyFocus()
@@ -106,11 +106,11 @@ func (m LoginModel) Update(msg tea.Msg) (Modal, tea.Cmd) {
 				},
 				CloseModal(),
 			)
-		case tea.KeyTab:
+		case "tab":
 			m.focus = (m.focus + 1) % 3
 			m.applyFocus()
 			return m, nil
-		case tea.KeyShiftTab:
+		case "shift+tab":
 			m.focus = (m.focus + 2) % 3
 			m.applyFocus()
 			return m, nil

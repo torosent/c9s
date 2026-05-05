@@ -9,8 +9,8 @@ import (
 	"strings"
 	"time"
 
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
+	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
 
 	"github.com/torosent/c9s/internal/cli"
 	"github.com/torosent/c9s/internal/clock"
@@ -87,6 +87,15 @@ type capabilitiesMsg struct {
 type acrLoginMsg struct {
 	host string
 	err  error
+}
+
+// shellExecDoneMsg is emitted after tea.ExecProcess returns from a
+// SuspendShellMsg. Carries an optional toast (set when the exec
+// failed) and triggers a fresh WindowSizeMsg so altscreen is fully
+// repainted — without that, the post-exec frame can render on top of
+// stale cells and leave the screen looking glitched.
+type shellExecDoneMsg struct {
+	toast string
 }
 
 // NewApp constructs the root model.
@@ -205,19 +214,30 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.splash, cmd = m.splash.Update(msg)
 			return m, cmd
 		}
+		// Active screens are rendered into a body region whose height
+		// is m.height minus banner + status bar + palette line. The
+		// screens use their received WindowSizeMsg to size internal
+		// widgets (bubbles/table viewport, etc.); if we forward the
+		// full terminal height the table sizes itself larger than the
+		// body region, View() output overflows m.height, and
+		// bubbletea's renderer drops the top rows (banner) to fit —
+		// which is exactly the "post-exec only the bottom of the
+		// banner is visible" bug the user reported. Send the screen
+		// the body region's actual size.
+		bodyMsg := tea.WindowSizeMsg{Width: msg.Width, Height: m.bodyRegionHeight()}
 		var cmds []tea.Cmd
-		// Always propagate to the active screen so it can reflow.
 		if scr, ok := m.screens[m.active]; ok {
-			newScr, cmd := scr.Update(msg)
+			newScr, cmd := scr.Update(bodyMsg)
 			m.screens[m.active] = newScr
 			if cmd != nil {
 				cmds = append(cmds, cmd)
 			}
 		}
 		// Also propagate to the top modal if open, so its viewport resizes.
+		// Modals overlay the body region too, so they get bodyMsg.
 		if !m.stack.Empty() {
 			modal := m.stack.Top()
-			newModal, cmd := modal.Update(msg)
+			newModal, cmd := modal.Update(bodyMsg)
 			m.stack.Pop()
 			m.stack.Push(newModal)
 			if cmd != nil {
@@ -272,6 +292,18 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case SplashDoneMsg:
 		m.showSplash = false
+		// The initial WindowSizeMsg arrived while the splash was
+		// showing, so it never reached the active screen. Now that
+		// the splash is dismissed, forward a sized message so the
+		// screen's table viewport (which defaults to 9 rows) gets
+		// the body region's height. Without this the table renders
+		// only ~10 rows worth of content even on a tall terminal.
+		bodyMsg := tea.WindowSizeMsg{Width: m.width, Height: m.bodyRegionHeight()}
+		if scr, ok := m.screens[m.active]; ok {
+			newScr, cmd := scr.Update(bodyMsg)
+			m.screens[m.active] = newScr
+			return m, cmd
+		}
 		return m, nil
 
 	case screens.OpenModalMsg:
@@ -306,6 +338,23 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case modals.ConfirmResultMsg:
 		// Forward the message to the active screen
+		if scr, ok := m.screens[m.active]; ok {
+			newScr, cmd := scr.Update(msg)
+			m.screens[m.active] = newScr
+			return m, cmd
+		}
+		return m, nil
+
+	case modals.ShellPickedMsg:
+		// The shell-picker modal batches ShellPickedMsg alongside
+		// CloseModalMsg, but tea.Batch makes no ordering guarantees.
+		// If we let this fall through to the catch-all routing
+		// below, the message races CloseModalMsg: when ShellPickedMsg
+		// arrives first the picker is still on the stack, the modal
+		// receives the message, doesn't handle it, and the pick is
+		// silently dropped — exactly the "I clicked bash and nothing
+		// happened" symptom. Forward directly to the active screen,
+		// matching the ConfirmResultMsg pattern above.
 		if scr, ok := m.screens[m.active]; ok {
 			newScr, cmd := scr.Update(msg)
 			m.screens[m.active] = newScr
@@ -361,11 +410,80 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, modal.Init()
 
 	case screens.SuspendShellMsg:
-		// #nosec G204 -- ID/Shell originate from internal CLI snapshots and the screen's caps probe, not user-supplied strings; binary path is the configured cli.Client.Bin().
-		cmd := tea.ExecProcess(exec.Command(m.client.Bin(), "exec", "-it", msg.ID, msg.Shell), func(error) tea.Msg {
-			return nil
+		// Apple's `container exec` returns exit 0 EVEN WHEN THE SHELL
+		// ISN'T INSTALLED — it writes the error to stderr (visible
+		// for milliseconds before altscreen re-entry hides it) and
+		// then exits cleanly. tea.ExecProcess sees a 0 exit code, so
+		// we can't surface a useful error post-hoc. Probe first via
+		// `container exec <id> test -x <shell>` (no -i/-t, so this
+		// returns a real exit code) and toast immediately if the
+		// shell isn't there. This is also why we ditched the host
+		// $SHELL — /bin/zsh is rarely in a Linux container, and the
+		// silent-failure mode left users staring at a "nothing
+		// happened" screen.
+		shortID := msg.ID
+		if len(shortID) > 12 {
+			shortID = shortID[:12]
+		}
+		probeCtx, probeCancel := context.WithTimeout(context.Background(), 3*time.Second)
+		// #nosec G204 -- ID/Shell originate from internal CLI snapshots and the modal's static option list (/bin/bash | /bin/sh), not user-supplied strings; binary path is the configured cli.Client.Bin().
+		probe := exec.CommandContext(probeCtx, m.client.Bin(), "exec", msg.ID, "test", "-x", msg.Shell)
+		probeErr := probe.Run()
+		probeCancel()
+		if probeErr != nil {
+			m.toast = fmt.Sprintf("%s not available in %s — try the other shell", msg.Shell, shortID)
+			return m, nil
+		}
+
+		// Shell exists. Run `container exec -it <id> <shell>` via
+		// tea.ExecProcess (exits altscreen, runs the child, then
+		// re-enters altscreen).
+		// #nosec G204 -- ID/Shell originate from internal CLI snapshots and the modal's static option list (/bin/bash | /bin/sh), not user-supplied strings; binary path is the configured cli.Client.Bin().
+		execCmd := exec.Command(m.client.Bin(), "exec", "-it", msg.ID, msg.Shell)
+		execDone := tea.ExecProcess(execCmd, func(err error) tea.Msg {
+			toast := ""
+			if err != nil {
+				toast = fmt.Sprintf("shell %s failed: %v", shortID, err)
+			}
+			return shellExecDoneMsg{toast: toast}
 		})
-		return m, cmd
+		return m, execDone
+
+	case shellExecDoneMsg:
+		if msg.toast != "" {
+			m.toast = msg.toast
+		}
+		// Bubbletea's RestoreTerminal calls renderer.enterAltScreen()
+		// which is supposed to repaint() (clearing lastRender +
+		// lastRenderedLines). Instrumented bytes show the renderer's
+		// diff cache often survives anyway and the next flush ends
+		// up writing only a handful of lines that "differ" from the
+		// stale cache.
+		//
+		// tea.ClearScreen Msg → renderer.clearScreen() which does
+		// EraseEntireScreen + CursorHomePosition + repaint(). The
+		// repaint resets lastRender + lastRenderedLines so the next
+		// flush has canSkip=false everywhere and writes the full
+		// View. Pair it with a synthetic WindowSizeMsg (so the
+		// active screen and any open modal reflow against
+		// bodyRegionHeight) and re-Init the screen so the polling
+		// tick consumed during the suspend rearms.
+		//
+		// tea.Sequence enforces strict ordering — Batch's concurrent
+		// execution loses the race against the renderer ticker.
+		width, height := m.width, m.height
+		var initCmd tea.Cmd
+		if scr, ok := m.screens[m.active]; ok {
+			initCmd = scr.Init()
+		}
+		seq := []tea.Cmd{
+			func() tea.Msg { return tea.ClearScreen() },
+			func() tea.Msg { return tea.WindowSizeMsg{Width: width, Height: height} },
+		}
+		if initCmd != nil {
+			seq = append(seq, initCmd)
+		}
+		return m, tea.Sequence(seq...)
 
 	case screens.StatusMsg:
 		m.toast = msg.Toast
@@ -385,7 +503,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		return m, nil
 
-	case tea.KeyMsg:
+	case tea.KeyPressMsg:
 		if m.showSplash {
 			var cmd tea.Cmd
 			m.splash, cmd = m.splash.Update(msg)
@@ -417,7 +535,27 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		if globalMap.Matches("header_toggle", msg) {
 			m.headerVisible = !m.headerVisible
-			return m, nil
+			// Body region just changed by the banner's height; resize
+			// the active screen and any open modal so they reflow.
+			bodyMsg := tea.WindowSizeMsg{Width: m.width, Height: m.bodyRegionHeight()}
+			var cmds []tea.Cmd
+			if scr, ok := m.screens[m.active]; ok {
+				newScr, cmd := scr.Update(bodyMsg)
+				m.screens[m.active] = newScr
+				if cmd != nil {
+					cmds = append(cmds, cmd)
+				}
+			}
+			if !m.stack.Empty() {
+				modal := m.stack.Top()
+				newModal, cmd := modal.Update(bodyMsg)
+				m.stack.Pop()
+				m.stack.Push(newModal)
+				if cmd != nil {
+					cmds = append(cmds, cmd)
+				}
+			}
+			return m, tea.Batch(cmds...)
 		}
 		if globalMap.Matches("help", msg) {
 			if scr, ok := m.screens[m.active]; ok {
@@ -497,16 +635,16 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-func (m Model) handleCommandKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
-	switch msg.Type {
-	case tea.KeyEsc:
+func (m Model) handleCommandKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
+	switch msg.String() {
+	case "esc":
 		m.cmdActive = false
 		m.cmdBuf = ""
 		if m.history != nil {
 			m.history.Reset()
 		}
 		return m, nil
-	case tea.KeyEnter:
+	case "enter":
 		cmd := strings.TrimSpace(m.cmdBuf)
 		m.cmdActive = false
 		m.cmdBuf = ""
@@ -515,12 +653,12 @@ func (m Model) handleCommandKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.history.Reset()
 		}
 		return m.runCommand(cmd)
-	case tea.KeyBackspace:
+	case "backspace":
 		if len(m.cmdBuf) > 0 {
 			m.cmdBuf = m.cmdBuf[:len(m.cmdBuf)-1]
 		}
 		return m, nil
-	case tea.KeyTab:
+	case "tab":
 		// Autocomplete to the longest common prefix of matching commands.
 		matches := palette.Match(m.cmdBuf, palette.Catalog())
 		if len(matches) == 0 {
@@ -542,14 +680,14 @@ func (m Model) handleCommandKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.cmdBuf = lcp
 		}
 		return m, nil
-	case tea.KeyUp:
+	case "up":
 		if m.history != nil {
 			if prev := m.history.Up(); prev != "" {
 				m.cmdBuf = prev
 			}
 		}
 		return m, nil
-	case tea.KeyDown:
+	case "down":
 		if m.history != nil {
 			if next := m.history.Down(); next != "" {
 				m.cmdBuf = next
@@ -558,14 +696,15 @@ func (m Model) handleCommandKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			}
 		}
 		return m, nil
-	case tea.KeySpace:
+	case "space":
 		m.cmdBuf += " "
 		return m, nil
-	case tea.KeyRunes:
-		m.cmdBuf += string(msg.Runes)
+	default:
+		if msg.Text != "" {
+			m.cmdBuf += msg.Text
+		}
 		return m, nil
 	}
-	return m, nil
 }
 
 func commonPrefix(a, b string) string {
@@ -820,7 +959,7 @@ func (m Model) runCommand(cmd string) (tea.Model, tea.Cmd) {
 		// and keeps the screen as the single source of truth for what
 		// "prune" means in its context.
 		if scr, ok := m.screens["containers"]; ok {
-			newScr, cmd := scr.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'P'}})
+			newScr, cmd := scr.Update(tea.KeyPressMsg{Code: 'P', Text: "P"})
 			m.screens["containers"] = newScr
 			return m, cmd
 		}
@@ -981,7 +1120,23 @@ func (m *Model) logError(op, resource, message, detail string) {
 }
 
 // View implements tea.Model.
-func (m Model) View() string {
+func (m Model) View() tea.View {
+	out := m.viewInternal()
+	if os.Getenv("C9S_TRACE") != "" {
+		if f, err := os.OpenFile("/tmp/c9s-trace.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644); err == nil {
+			fmt.Fprintf(f, "[View] m=%dx%d body=%d showSplash=%v stack=%d outLines=%d outChars=%d\n",
+				m.width, m.height, m.bodyRegionHeight(), m.showSplash, m.stack.Len(),
+				strings.Count(out, "\n")+1, len(out))
+			f.Close()
+		}
+	}
+	v := tea.NewView(out)
+	v.AltScreen = true
+	v.MouseMode = tea.MouseModeCellMotion
+	return v
+}
+
+func (m Model) viewInternal() string {
 	if m.width == 0 || m.height == 0 {
 		return ""
 	}
@@ -1101,13 +1256,7 @@ func (m Model) View() string {
 	}
 
 	// Build body
-	bodyHeight := m.height - 2 // status bar + palette line
-	if m.headerVisible {
-		bodyHeight -= 9 // banner: 2 rows top pad + 6 content + 1 bottom pad
-		if m.crumbs.Len() > 1 {
-			bodyHeight -= 1
-		}
-	}
+	bodyHeight := m.bodyRegionHeight()
 
 	body := ""
 	if scr, ok := m.screens[m.active]; ok {
@@ -1123,8 +1272,7 @@ func (m Model) View() string {
 			m.width, bodyHeight,
 			lipgloss.Center, lipgloss.Center,
 			modalContent,
-			lipgloss.WithWhitespaceBackground(m.palette.Bg),
-			lipgloss.WithWhitespaceForeground(m.palette.Bg),
+			lipgloss.WithWhitespaceStyle(lipgloss.NewStyle().Background(m.palette.Bg).Foreground(m.palette.Bg)),
 		)
 	}
 
@@ -1214,6 +1362,26 @@ func (m Model) View() string {
 		Foreground(m.palette.Fg).
 		Background(m.palette.Bg).
 		Render(out)
+}
+
+// bodyRegionHeight returns the number of rows available for the active
+// screen's View output, after subtracting the chrome (banner + status
+// bar + palette line + breadcrumbs). This is the height we pass to
+// scr.View() for the BorderedBox sizing AND the Height we forward to
+// the screen via WindowSizeMsg so its internal table viewport matches.
+// Mismatch was the root cause of the post-exec "only the bottom of
+// the banner is visible" bug — the screen's viewport overflowed the
+// body region, View() output exceeded m.height, and bubbletea's
+// renderer dropped the top rows to fit the actual terminal.
+func (m Model) bodyRegionHeight() int {
+	h := m.height - 2 // status bar + palette line
+	if m.headerVisible {
+		h -= 9 // banner: 2 rows top pad + 6 content + 1 bottom pad
+		if m.crumbs.Len() > 1 {
+			h -= 1
+		}
+	}
+	return h
 }
 
 func pluralize(n int) string {

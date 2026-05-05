@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	tea "github.com/charmbracelet/bubbletea"
+	tea "charm.land/bubbletea/v2"
 	"github.com/torosent/c9s/internal/cli"
 	"github.com/torosent/c9s/internal/clock"
 	"github.com/torosent/c9s/internal/state"
@@ -106,7 +106,7 @@ func TestSpaceTogglesMark(t *testing.T) {
 	m := New(f, clock.NewFake(time.Now()), theme.DefaultDark())
 	m = feedSnapshot(t, m, sampleImages())
 
-	s, _ := m.Update(tea.KeyMsg{Type: tea.KeySpace})
+	s, _ := m.Update(tea.KeyPressMsg{Code: tea.KeySpace})
 	m = assertModel(t, s)
 	if !strings.Contains(m.Summary(), "1 selected") {
 		t.Errorf("expected summary to mention selection, got %q", m.Summary())
@@ -118,7 +118,7 @@ func TestStarSelectsAll(t *testing.T) {
 	m := New(f, clock.NewFake(time.Now()), theme.DefaultDark())
 	m = feedSnapshot(t, m, sampleImages())
 
-	s, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'*'}})
+	s, _ := m.Update(tea.KeyPressMsg{Code: '*', Text: "*"})
 	m = assertModel(t, s)
 	if !strings.Contains(m.Summary(), "2 selected") {
 		t.Errorf("expected '2 selected', got %q", m.Summary())
@@ -130,9 +130,9 @@ func TestEscClearsMarks(t *testing.T) {
 	m := New(f, clock.NewFake(time.Now()), theme.DefaultDark())
 	m = feedSnapshot(t, m, sampleImages())
 
-	s, _ := m.Update(tea.KeyMsg{Type: tea.KeySpace})
+	s, _ := m.Update(tea.KeyPressMsg{Code: tea.KeySpace})
 	m = assertModel(t, s)
-	s, _ = m.Update(tea.KeyMsg{Type: tea.KeyEsc})
+	s, _ = m.Update(tea.KeyPressMsg{Code: tea.KeyEsc})
 	m = assertModel(t, s)
 	if strings.Contains(m.Summary(), "selected") {
 		t.Errorf("Esc should have cleared marks, got %q", m.Summary())
@@ -144,7 +144,7 @@ func TestRTriggersRefresh(t *testing.T) {
 	f.ListImagesResp = sampleImages()
 	m := New(f, clock.NewFake(time.Now()), theme.DefaultDark())
 
-	_, cmd := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'r'}})
+	_, cmd := m.Update(tea.KeyPressMsg{Code: 'r', Text: "r"})
 	if cmd == nil {
 		t.Fatal("expected cmd from r key")
 	}
@@ -166,7 +166,7 @@ func TestDOpensInspectModal(t *testing.T) {
 	m := New(f, clock.NewFake(time.Now()), theme.DefaultDark())
 	m = feedSnapshot(t, m, sampleImages())
 
-	_, cmd := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'d'}})
+	_, cmd := m.Update(tea.KeyPressMsg{Code: 'd', Text: "d"})
 	if cmd == nil {
 		t.Fatal("expected cmd from d key")
 	}
@@ -181,7 +181,7 @@ func TestUppercaseDOpensConfirm(t *testing.T) {
 	m := New(f, clock.NewFake(time.Now()), theme.DefaultDark())
 	m = feedSnapshot(t, m, sampleImages())
 
-	_, cmd := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'D'}})
+	_, cmd := m.Update(tea.KeyPressMsg{Code: 'D', Text: "D"})
 	if cmd == nil {
 		t.Fatal("expected cmd from D key")
 	}
@@ -196,7 +196,7 @@ func TestTKeyOpensTagModal(t *testing.T) {
 	m := New(f, clock.NewFake(time.Now()), theme.DefaultDark())
 	m = feedSnapshot(t, m, sampleImages())
 
-	_, cmd := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'t'}})
+	_, cmd := m.Update(tea.KeyPressMsg{Code: 't', Text: "t"})
 	if cmd == nil {
 		t.Fatal("expected cmd from t key")
 	}
@@ -248,7 +248,7 @@ func TestRKeyOpensRunForm(t *testing.T) {
 	m := New(f, clock.NewFake(time.Now()), theme.DefaultDark())
 	m = feedSnapshot(t, m, sampleImages())
 
-	_, cmd := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'R'}})
+	_, cmd := m.Update(tea.KeyPressMsg{Code: 'R', Text: "R"})
 	if cmd == nil {
 		t.Fatal("expected cmd from R key")
 	}
@@ -263,7 +263,7 @@ func TestPushKeyEmitsPushRequest(t *testing.T) {
 	m := New(f, clock.NewFake(time.Now()), theme.DefaultDark())
 	m = feedSnapshot(t, m, sampleImages())
 
-	_, cmd := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'P'}})
+	_, cmd := m.Update(tea.KeyPressMsg{Code: 'P', Text: "P"})
 	if cmd == nil {
 		t.Fatal("expected cmd from P key")
 	}
@@ -278,13 +278,13 @@ func TestSlashEntersFilterMode(t *testing.T) {
 	m := New(f, clock.NewFake(time.Now()), theme.DefaultDark())
 	m = feedSnapshot(t, m, sampleImages())
 
-	s, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'/'}})
+	s, _ := m.Update(tea.KeyPressMsg{Code: '/', Text: "/"})
 	m = assertModel(t, s)
 	for _, r := range "ngin" {
-		s, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{r}})
+		s, _ = m.Update(tea.KeyPressMsg{Code: r, Text: string(r)})
 		m = assertModel(t, s)
 	}
-	s, _ = m.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	s, _ = m.Update(tea.KeyPressMsg{Code: tea.KeyEnter})
 	m = assertModel(t, s)
 	view := m.View(120, 30)
 	if !strings.Contains(view, "nginx") {
@@ -306,7 +306,7 @@ func TestConfirmDeleteFiresDelete(t *testing.T) {
 	m = feedSnapshot(t, m, sampleImages())
 
 	// Mark first image
-	s, _ := m.Update(tea.KeyMsg{Type: tea.KeySpace})
+	s, _ := m.Update(tea.KeyPressMsg{Code: tea.KeySpace})
 	m = assertModel(t, s)
 
 	// Send the confirmation result message directly
@@ -318,7 +318,7 @@ func TestConfirmDeleteFiresDelete(t *testing.T) {
 	// Execute the cmd batch
 	_ = cmd()
 	// Use a fresh path: invoke deleteSelected then ConfirmResult
-	_, cmd2 := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'D'}})
+	_, cmd2 := m.Update(tea.KeyPressMsg{Code: 'D', Text: "D"})
 	if cmd2 != nil {
 		_ = cmd2()
 	}
@@ -351,13 +351,13 @@ func TestFilterEscRestoresAll(t *testing.T) {
 	m = feedSnapshot(t, m, sampleImages())
 
 	// enter filter, type, then esc
-	s, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'/'}})
+	s, _ := m.Update(tea.KeyPressMsg{Code: '/', Text: "/"})
 	m = assertModel(t, s)
 	for _, r := range "ngin" {
-		s, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{r}})
+		s, _ = m.Update(tea.KeyPressMsg{Code: r, Text: string(r)})
 		m = assertModel(t, s)
 	}
-	s, _ = m.Update(tea.KeyMsg{Type: tea.KeyEsc})
+	s, _ = m.Update(tea.KeyPressMsg{Code: tea.KeyEsc})
 	m = assertModel(t, s)
 
 	view := m.View(120, 30)
@@ -371,13 +371,13 @@ func TestFilterBackspaceShrinks(t *testing.T) {
 	m := New(f, clock.NewFake(time.Now()), theme.DefaultDark())
 	m = feedSnapshot(t, m, sampleImages())
 
-	s, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'/'}})
+	s, _ := m.Update(tea.KeyPressMsg{Code: '/', Text: "/"})
 	m = assertModel(t, s)
 	for _, r := range "ng" {
-		s, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{r}})
+		s, _ = m.Update(tea.KeyPressMsg{Code: r, Text: string(r)})
 		m = assertModel(t, s)
 	}
-	s, _ = m.Update(tea.KeyMsg{Type: tea.KeyBackspace})
+	s, _ = m.Update(tea.KeyPressMsg{Code: tea.KeyBackspace})
 	m = assertModel(t, s)
 	view := m.View(120, 30)
 	// Only one char left "n" — both nginx and api don't contain just "n" actually api doesn't contain n
@@ -451,10 +451,10 @@ func TestMouseLeftClickSelectsRow(t *testing.T) {
 	f := cli.NewFake()
 	m := New(f, clock.NewFake(time.Now()), theme.DefaultDark())
 	m = feedSnapshot(t, m, sampleImages())
-	s, _ := m.Update(tea.MouseMsg{
+	s, _ := m.Update(tea.MouseClickMsg{
 		X:      5,
 		Y:      4,
-		Button: tea.MouseButtonLeft,
+		Button: tea.MouseLeft,
 	})
 	m = assertModel(t, s)
 	if m.tbl.Cursor() != 1 {

@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	tea "github.com/charmbracelet/bubbletea"
+	tea "charm.land/bubbletea/v2"
 	"github.com/torosent/c9s/internal/cli"
 	"github.com/torosent/c9s/internal/clock"
 	"github.com/torosent/c9s/internal/ui/modals"
@@ -52,19 +52,19 @@ func TestStartStopRefreshKeys(t *testing.T) {
 	f := cli.NewFake()
 	m := New(f, clock.NewFake(time.Now()), theme.DefaultDark())
 
-	_, cmd := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'r'}})
+	_, cmd := m.Update(tea.KeyPressMsg{Code: 'r', Text: "r"})
 	if cmd == nil {
 		t.Fatal("r returned nil")
 	}
 	cmd()
 
-	_, cmd = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'S'}})
+	_, cmd = m.Update(tea.KeyPressMsg{Code: 'S', Text: "S"})
 	if cmd == nil {
 		t.Fatal("S returned nil")
 	}
 	cmd()
 
-	_, cmd = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'X'}})
+	_, cmd = m.Update(tea.KeyPressMsg{Code: 'X', Text: "X"})
 	if cmd == nil {
 		t.Fatal("X returned nil")
 	}
@@ -87,7 +87,7 @@ func TestDeleteFlow(t *testing.T) {
 	f := cli.NewFake()
 	m := New(f, clock.NewFake(time.Now()), theme.DefaultDark())
 
-	_, cmd := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'D'}})
+	_, cmd := m.Update(tea.KeyPressMsg{Code: 'D', Text: "D"})
 	if cmd == nil {
 		t.Fatal("D returned nil")
 	}
@@ -128,7 +128,7 @@ func TestErrorPropagation(t *testing.T) {
 	f := cli.NewFake()
 	f.BuilderStartErr = errString("boom")
 	m := New(f, clock.NewFake(time.Now()), theme.DefaultDark())
-	_, cmd := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'S'}})
+	_, cmd := m.Update(tea.KeyPressMsg{Code: 'S', Text: "S"})
 	if cmd == nil {
 		t.Fatal("S nil")
 	}

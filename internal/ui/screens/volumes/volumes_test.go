@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	tea "github.com/charmbracelet/bubbletea"
+	tea "charm.land/bubbletea/v2"
 	"github.com/torosent/c9s/internal/cli"
 	"github.com/torosent/c9s/internal/clock"
 	"github.com/torosent/c9s/internal/state"
@@ -68,7 +68,7 @@ func TestSpaceMark(t *testing.T) {
 	f := cli.NewFake()
 	m := New(f, clock.NewFake(time.Now()), theme.DefaultDark())
 	m = feedSnap(t, m, sampleVolumes())
-	s, _ := m.Update(tea.KeyMsg{Type: tea.KeySpace})
+	s, _ := m.Update(tea.KeyPressMsg{Code: tea.KeySpace})
 	m = assertModel(t, s)
 	if !strings.Contains(m.Summary(), "1 selected") {
 		t.Errorf("expected 1 selected, got %q", m.Summary())
@@ -79,7 +79,7 @@ func TestStarMarksAll(t *testing.T) {
 	f := cli.NewFake()
 	m := New(f, clock.NewFake(time.Now()), theme.DefaultDark())
 	m = feedSnap(t, m, sampleVolumes())
-	s, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'*'}})
+	s, _ := m.Update(tea.KeyPressMsg{Code: '*', Text: "*"})
 	m = assertModel(t, s)
 	if !strings.Contains(m.Summary(), "2 selected") {
 		t.Errorf("got %q", m.Summary())
@@ -89,7 +89,7 @@ func TestStarMarksAll(t *testing.T) {
 func TestRefresh(t *testing.T) {
 	f := cli.NewFake()
 	m := New(f, clock.NewFake(time.Now()), theme.DefaultDark())
-	_, cmd := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'r'}})
+	_, cmd := m.Update(tea.KeyPressMsg{Code: 'r', Text: "r"})
 	if cmd == nil {
 		t.Fatal("nil cmd")
 	}
@@ -103,7 +103,7 @@ func TestInspectOpensModal(t *testing.T) {
 	f := cli.NewFake()
 	m := New(f, clock.NewFake(time.Now()), theme.DefaultDark())
 	m = feedSnap(t, m, sampleVolumes())
-	_, cmd := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'d'}})
+	_, cmd := m.Update(tea.KeyPressMsg{Code: 'd', Text: "d"})
 	if cmd == nil {
 		t.Fatal("nil cmd")
 	}
@@ -116,7 +116,7 @@ func TestDeleteFlow(t *testing.T) {
 	f := cli.NewFake()
 	m := New(f, clock.NewFake(time.Now()), theme.DefaultDark())
 	m = feedSnap(t, m, sampleVolumes())
-	_, cmd := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'D'}})
+	_, cmd := m.Update(tea.KeyPressMsg{Code: 'D', Text: "D"})
 	if cmd == nil {
 		t.Fatal("nil cmd")
 	}
@@ -136,13 +136,13 @@ func TestFilter(t *testing.T) {
 	f := cli.NewFake()
 	m := New(f, clock.NewFake(time.Now()), theme.DefaultDark())
 	m = feedSnap(t, m, sampleVolumes())
-	s, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'/'}})
+	s, _ := m.Update(tea.KeyPressMsg{Code: '/', Text: "/"})
 	m = assertModel(t, s)
 	for _, r := range "cache" {
-		s, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{r}})
+		s, _ = m.Update(tea.KeyPressMsg{Code: r, Text: string(r)})
 		m = assertModel(t, s)
 	}
-	s, _ = m.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	s, _ = m.Update(tea.KeyPressMsg{Code: tea.KeyEnter})
 	m = assertModel(t, s)
 	v := m.View(120, 30)
 	if !strings.Contains(v, "cache") {
@@ -154,9 +154,9 @@ func TestEscClearsMarks(t *testing.T) {
 	f := cli.NewFake()
 	m := New(f, clock.NewFake(time.Now()), theme.DefaultDark())
 	m = feedSnap(t, m, sampleVolumes())
-	s, _ := m.Update(tea.KeyMsg{Type: tea.KeySpace})
+	s, _ := m.Update(tea.KeyPressMsg{Code: tea.KeySpace})
 	m = assertModel(t, s)
-	s, _ = m.Update(tea.KeyMsg{Type: tea.KeyEsc})
+	s, _ = m.Update(tea.KeyPressMsg{Code: tea.KeyEsc})
 	m = assertModel(t, s)
 	if strings.Contains(m.Summary(), "selected") {
 		t.Errorf("Esc should clear marks, got %q", m.Summary())
@@ -233,10 +233,10 @@ func TestMouseLeftClickSelectsRow(t *testing.T) {
 	f := cli.NewFake()
 	m := New(f, clock.NewFake(time.Now()), theme.DefaultDark())
 	m = feedSnap(t, m, sampleVolumes())
-	s, _ := m.Update(tea.MouseMsg{
+	s, _ := m.Update(tea.MouseClickMsg{
 		X:      5,
 		Y:      4,
-		Button: tea.MouseButtonLeft,
+		Button: tea.MouseLeft,
 	})
 	m = assertModel(t, s)
 	if m.tbl.Cursor() != 1 {

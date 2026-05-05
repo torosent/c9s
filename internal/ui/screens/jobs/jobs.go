@@ -5,8 +5,8 @@ import (
 	"sort"
 	"time"
 
-	"github.com/charmbracelet/bubbles/table"
-	tea "github.com/charmbracelet/bubbletea"
+	"charm.land/bubbles/v2/table"
+	tea "charm.land/bubbletea/v2"
 	"github.com/torosent/c9s/internal/clock"
 	"github.com/torosent/c9s/internal/jobs"
 	"github.com/torosent/c9s/internal/ui/keymap"
@@ -102,7 +102,7 @@ func (m *Model) Update(msg tea.Msg) (screens.Screen, tea.Cmd) {
 	var cmds []tea.Cmd
 
 	switch msg := msg.(type) {
-	case tea.KeyMsg:
+	case tea.KeyPressMsg:
 		switch msg.String() {
 		case "enter":
 			cmds = append(cmds, m.reattachJob())
@@ -112,9 +112,8 @@ func (m *Model) Update(msg tea.Msg) (screens.Screen, tea.Cmd) {
 			cmds = append(cmds, m.clearDone())
 		}
 
-	case tea.MouseMsg:
-		switch msg.Button {
-		case tea.MouseButtonLeft:
+	case tea.MouseClickMsg:
+		if msg.Button == tea.MouseLeft {
 			// Compute row index (assuming table starts at Y=3 after title+header)
 			if msg.Y >= 3 {
 				row := msg.Y - 3
@@ -122,9 +121,12 @@ func (m *Model) Update(msg tea.Msg) (screens.Screen, tea.Cmd) {
 					m.table.SetCursor(row)
 				}
 			}
-		case tea.MouseButtonWheelUp:
+		}
+	case tea.MouseWheelMsg:
+		switch msg.Button {
+		case tea.MouseWheelUp:
 			m.table.MoveUp(1)
-		case tea.MouseButtonWheelDown:
+		case tea.MouseWheelDown:
 			m.table.MoveDown(1)
 		}
 
@@ -209,6 +211,7 @@ func (m *Model) clearDone() tea.Cmd {
 
 // View implements screens.Screen.
 func (m *Model) View(width, height int) string {
+	m.table.SetWidth(width)
 	if width > 0 && height > 0 {
 		m.table.SetWidth(width - 4)
 		m.table.SetHeight(height - 4)

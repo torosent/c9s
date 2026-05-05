@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	tea "github.com/charmbracelet/bubbletea"
+	tea "charm.land/bubbletea/v2"
 	"github.com/torosent/c9s/internal/ui/theme"
 )
 
@@ -18,12 +18,12 @@ func TestNewLoginPrefillsHost(t *testing.T) {
 func TestLoginPasswordIsMaskedInRender(t *testing.T) {
 	m := NewLogin("", theme.DefaultDark())
 	// type into host first
-	m2, _ := m.Update(tea.KeyMsg{Type: tea.KeyTab}) // move to user
+	m2, _ := m.Update(tea.KeyPressMsg{Code: tea.KeyTab}) // move to user
 	m = m2.(LoginModel)
-	m2, _ = m.Update(tea.KeyMsg{Type: tea.KeyTab}) // move to password
+	m2, _ = m.Update(tea.KeyPressMsg{Code: tea.KeyTab}) // move to password
 	m = m2.(LoginModel)
 	for _, r := range "topsecret" {
-		m2, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{r}})
+		m2, _ = m.Update(tea.KeyPressMsg{Code: r, Text: string(r)})
 		m = m2.(LoginModel)
 	}
 	view := m.View(80, 20)
@@ -38,22 +38,22 @@ func TestLoginPasswordIsMaskedInRender(t *testing.T) {
 func TestLoginEnterCascadesToSubmit(t *testing.T) {
 	m := NewLogin("", theme.DefaultDark())
 	for _, r := range "ghcr.io" {
-		m2, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{r}})
+		m2, _ := m.Update(tea.KeyPressMsg{Code: r, Text: string(r)})
 		m = m2.(LoginModel)
 	}
-	m2, _ := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	m2, _ := m.Update(tea.KeyPressMsg{Code: tea.KeyEnter})
 	m = m2.(LoginModel)
 	for _, r := range "alice" {
-		m2, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{r}})
+		m2, _ := m.Update(tea.KeyPressMsg{Code: r, Text: string(r)})
 		m = m2.(LoginModel)
 	}
-	m2, _ = m.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	m2, _ = m.Update(tea.KeyPressMsg{Code: tea.KeyEnter})
 	m = m2.(LoginModel)
 	for _, r := range "passw0rd" {
-		m2, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{r}})
+		m2, _ := m.Update(tea.KeyPressMsg{Code: r, Text: string(r)})
 		m = m2.(LoginModel)
 	}
-	_, cmd := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	_, cmd := m.Update(tea.KeyPressMsg{Code: tea.KeyEnter})
 	if cmd == nil {
 		t.Fatal("expected cmd from final Enter")
 	}
@@ -77,7 +77,7 @@ func TestLoginEnterCascadesToSubmit(t *testing.T) {
 
 func TestLoginEscEmitsCancel(t *testing.T) {
 	m := NewLogin("", theme.DefaultDark())
-	_, cmd := m.Update(tea.KeyMsg{Type: tea.KeyEsc})
+	_, cmd := m.Update(tea.KeyPressMsg{Code: tea.KeyEsc})
 	if cmd == nil {
 		t.Fatal("Esc returned nil cmd")
 	}
@@ -94,8 +94,12 @@ func TestLoginEscEmitsCancel(t *testing.T) {
 
 func TestLoginShiftTabCycles(t *testing.T) {
 	m := NewLogin("", theme.DefaultDark())
-	for _, kt := range []tea.KeyType{tea.KeyShiftTab, tea.KeyTab, tea.KeyShiftTab} {
-		m2, _ := m.Update(tea.KeyMsg{Type: kt})
+	for _, kt := range []tea.KeyPressMsg{
+		{Code: tea.KeyTab, Mod: tea.ModShift},
+		{Code: tea.KeyTab},
+		{Code: tea.KeyTab, Mod: tea.ModShift},
+	} {
+		m2, _ := m.Update(kt)
 		m = m2.(LoginModel)
 	}
 	// Just ensure nothing panics; render once

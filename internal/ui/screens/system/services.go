@@ -9,8 +9,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/charmbracelet/bubbles/table"
-	tea "github.com/charmbracelet/bubbletea"
+	"charm.land/bubbles/v2/table"
+	tea "charm.land/bubbletea/v2"
 	"github.com/torosent/c9s/internal/cli"
 	"github.com/torosent/c9s/internal/clock"
 	"github.com/torosent/c9s/internal/state"
@@ -107,7 +107,8 @@ func (m ServicesModel) Update(msg tea.Msg) (screens.Screen, tea.Cmd) {
 		if msg.Resource != cli.ResourceSystem {
 			break
 		}
-		cmds = append(cmds,
+		cmds = append(
+			cmds,
 			state.MakeRefreshedCmd[cli.SystemService](
 				cli.DefaultCtx(),
 				func(ctx context.Context) ([]cli.SystemService, error) {
@@ -118,7 +119,7 @@ func (m ServicesModel) Update(msg tea.Msg) (screens.Screen, tea.Cmd) {
 			state.TickCmd(2*time.Second, m.clk, cli.ResourceSystem),
 		)
 
-	case tea.KeyMsg:
+	case tea.KeyPressMsg:
 		if m.filterMode {
 			return m.handleFilterKey(msg)
 		}
@@ -156,6 +157,7 @@ func (m ServicesModel) Update(msg tea.Msg) (screens.Screen, tea.Cmd) {
 
 // View implements screens.Screen.
 func (m ServicesModel) View(width, height int) string {
+	(&m.tbl).SetWidth(width)
 	if m.filterMode {
 		return m.tbl.View() + "\n" + fmt.Sprintf("Filter: %s_", m.filter)
 	}
@@ -228,27 +230,29 @@ func (m *ServicesModel) stopAll() tea.Cmd {
 	}
 }
 
-func (m ServicesModel) handleFilterKey(msg tea.KeyMsg) (screens.Screen, tea.Cmd) {
-	switch msg.Type {
-	case tea.KeyEnter:
+func (m ServicesModel) handleFilterKey(msg tea.KeyPressMsg) (screens.Screen, tea.Cmd) {
+	switch msg.String() {
+	case "enter":
 		m.filterMode = false
 		m.rebuildTable()
 		return m, nil
-	case tea.KeyEsc:
+	case "esc":
 		m.filterMode = false
 		m.filter = ""
 		m.rebuildTable()
 		return m, nil
-	case tea.KeyBackspace:
+	case "backspace":
 		if len(m.filter) > 0 {
 			m.filter = m.filter[:len(m.filter)-1]
 			m.rebuildTable()
 		}
 		return m, nil
-	case tea.KeyRunes:
-		m.filter += string(msg.Runes)
-		m.rebuildTable()
-		return m, nil
+	default:
+		if msg.Text != "" {
+			m.filter += msg.Text
+			m.rebuildTable()
+			return m, nil
+		}
 	}
 	return m, nil
 }

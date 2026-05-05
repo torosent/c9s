@@ -2,10 +2,10 @@ package containers
 
 import (
 	"fmt"
+	"image/color"
 	"strings"
 	"time"
 
-	"github.com/charmbracelet/lipgloss"
 	"github.com/torosent/c9s/internal/ui/theme"
 )
 
@@ -67,9 +67,9 @@ func formatShortID(id string) string {
 }
 
 // colorForState returns the color for a given container state.
-func colorForState(p theme.Palette, state string) lipgloss.Color {
-	if color, ok := p.State[state]; ok {
-		return color
+func colorForState(p theme.Palette, state string) color.Color {
+	if c, ok := p.State[state]; ok {
+		return c
 	}
 	return p.Dim
 }

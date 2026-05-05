@@ -1,11 +1,28 @@
 package theme
 
 import (
+	"image/color"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"charm.land/lipgloss/v2"
 )
+
+// sameColor compares two colors by their RGBA components, allowing for
+// lipgloss's parser-internal type variations (RGBA, ANSIColor, etc.).
+func sameColor(a, b color.Color) bool {
+	if (a == nil) != (b == nil) {
+		return false
+	}
+	if a == nil {
+		return true
+	}
+	ar, ag, ab, aa := a.RGBA()
+	br, bg, bb, ba := b.RGBA()
+	return ar == br && ag == bg && ab == bb && aa == ba
+}
 
 func TestLoadSkin_BundledDark(t *testing.T) {
 	p, err := LoadSkin("dark")
@@ -13,10 +30,10 @@ func TestLoadSkin_BundledDark(t *testing.T) {
 		t.Fatalf("LoadSkin(dark) failed: %v", err)
 	}
 
-	if p.Fg == "" {
+	if p.Fg == nil {
 		t.Error("expected Fg to be set")
 	}
-	if p.Bg == "" {
+	if p.Bg == nil {
 		t.Error("expected Bg to be set")
 	}
 	if len(p.State) == 0 {
@@ -31,7 +48,7 @@ func TestLoadSkin_BundledLight(t *testing.T) {
 	}
 
 	// Light theme should have different colors than dark
-	if p.Bg == "#0d1117" {
+	if sameColor(p.Bg, lipgloss.Color("#0d1117")) {
 		t.Error("light theme should not have dark background")
 	}
 }
@@ -42,7 +59,7 @@ func TestLoadSkin_K9sDark(t *testing.T) {
 		t.Fatalf("LoadSkin(k9s-dark) failed: %v", err)
 	}
 
-	if p.Accent == "" {
+	if p.Accent == nil {
 		t.Error("expected Accent to be set")
 	}
 }
@@ -53,7 +70,7 @@ func TestLoadSkin_K9sLight(t *testing.T) {
 		t.Fatalf("LoadSkin(k9s-light) failed: %v", err)
 	}
 
-	if string(p.Fg) == "" {
+	if p.Fg == nil {
 		t.Error("expected Fg to be set")
 	}
 }
@@ -110,11 +127,11 @@ created = "#00f"
 		t.Fatalf("LoadSkin(custom) failed: %v", err)
 	}
 
-	if string(p.Fg) != "#ff0000" {
-		t.Errorf("expected custom Fg color, got %s", p.Fg)
+	if !sameColor(p.Fg, lipgloss.Color("#ff0000")) {
+		t.Errorf("expected custom Fg=#ff0000, got %v", p.Fg)
 	}
-	if string(p.Accent) != "#00ff00" {
-		t.Errorf("expected custom Accent color, got %s", p.Accent)
+	if !sameColor(p.Accent, lipgloss.Color("#00ff00")) {
+		t.Errorf("expected custom Accent=#00ff00, got %v", p.Accent)
 	}
 }
 

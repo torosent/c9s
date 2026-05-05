@@ -4,7 +4,7 @@ import (
 	"sort"
 	"strings"
 
-	tea "github.com/charmbracelet/bubbletea"
+	tea "charm.land/bubbletea/v2"
 )
 
 // Binding represents a keyboard shortcut with its documentation.
@@ -44,83 +44,73 @@ func (m *Map) Names() []string {
 }
 
 // Matches checks if the given key message matches the named binding.
+// In v2, tea.KeyMsg is an interface; we only match key presses (not
+// releases), so we type-assert to tea.KeyPressMsg.
 func (m *Map) Matches(name string, msg tea.KeyMsg) bool {
 	b, ok := m.Get(name)
 	if !ok {
 		return false
 	}
+	press, ok := msg.(tea.KeyPressMsg)
+	if !ok {
+		return false
+	}
 
 	for _, keyStr := range b.Keys {
-		if matchesKey(keyStr, msg) {
+		if matchesKey(keyStr, press) {
 			return true
 		}
 	}
 	return false
 }
 
-// matchesKey checks if a key string matches a KeyMsg.
-func matchesKey(keyStr string, msg tea.KeyMsg) bool {
-	// Don't lowercase yet - we need to preserve case for uppercase letters
+// matchesKey checks if a key string matches a KeyPressMsg using v2's
+// standardized String() format. v2's String() returns keys like "esc",
+// "enter", "space", "ctrl+c", "shift+P", "a", etc., which directly
+// matches the Keys[] entries in our Binding definitions.
+func matchesKey(keyStr string, msg tea.KeyPressMsg) bool {
+	got := msg.String()
+	want := keyStr
 
-	// Handle special keys (case-insensitive)
-	lowerKey := strings.ToLower(keyStr)
-	switch lowerKey {
-	case "esc", "escape":
-		return msg.Type == tea.KeyEsc
-	case "enter", "return":
-		return msg.Type == tea.KeyEnter
-	case "space":
-		return msg.Type == tea.KeySpace
-	case "backspace":
-		return msg.Type == tea.KeyBackspace
-	case "tab":
-		return msg.Type == tea.KeyTab
-	case "up":
-		return msg.Type == tea.KeyUp
-	case "down":
-		return msg.Type == tea.KeyDown
-	case "left":
-		return msg.Type == tea.KeyLeft
-	case "right":
-		return msg.Type == tea.KeyRight
+	// Direct match (covers "esc", "enter", "space", "ctrl+c", etc.)
+	if got == want {
+		return true
 	}
 
-	// Handle ctrl+key
-	if strings.HasPrefix(lowerKey, "ctrl+") {
-		key := strings.TrimPrefix(lowerKey, "ctrl+")
-		switch key {
-		case "c":
-			return msg.Type == tea.KeyCtrlC
-		case "e":
-			return msg.Type == tea.KeyCtrlE
-		case "d":
-			return msg.Type == tea.KeyCtrlD
-		}
+	// Tolerate case differences for special-key aliases (e.g. "ESC" vs
+	// "esc"), but NOT single-character bindings — 'q' must not match a
+	// 'Q' override and vice versa.
+	if len(want) > 1 && len(got) > 1 && strings.EqualFold(got, want) {
+		return true
 	}
 
-	// Handle shift+key
-	if strings.HasPrefix(lowerKey, "shift+") {
-		key := strings.TrimPrefix(lowerKey, "shift+")
-		if len(key) == 1 {
-			// For single character, match the uppercase rune
-			upperRune := []rune(strings.ToUpper(key))[0]
-			if msg.Type == tea.KeyRunes && len(msg.Runes) == 1 && msg.Runes[0] == upperRune {
+	// Common aliases.
+	if (want == "escape" && got == "esc") ||
+		(want == "return" && got == "enter") {
+		return true
+	}
+
+	// "shift+x" where x is lowercase: v2's String() reports "shift+X"
+	// (with the shifted character). Handle that.
+	if strings.HasPrefix(strings.ToLower(want), "shift+") {
+		suffix := want[len("shift+"):]
+		if len(suffix) == 1 {
+			// got might be "shift+X" or just "X"
+			if got == "shift+"+strings.ToUpper(suffix) {
+				return true
+			}
+			if got == strings.ToUpper(suffix) {
 				return true
 			}
 		}
 	}
 
-	// Handle uppercase single character (treated as shift+key)
+	// Single uppercase letter — v2's String() returns just the
+	// shifted character (e.g. "P"); old code treated this as "shift+p".
 	if len(keyStr) == 1 {
-		char := keyStr[0]
-		if char >= 'A' && char <= 'Z' {
-			// Uppercase letter - match exactly
-			if msg.Type == tea.KeyRunes && len(msg.Runes) == 1 && msg.Runes[0] == rune(char) {
-				return true
-			}
-		} else if msg.Type == tea.KeyRunes && len(msg.Runes) == 1 {
-			// Lowercase or other - match exactly
-			return msg.Runes[0] == rune(char)
+		c := keyStr[0]
+		if c >= 'A' && c <= 'Z' && got == string(c) {
+			return true
 		}
 	}
 

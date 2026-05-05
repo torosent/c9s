@@ -4,17 +4,17 @@ import (
 	"strings"
 	"testing"
 
-	tea "github.com/charmbracelet/bubbletea"
+	tea "charm.land/bubbletea/v2"
 	"github.com/torosent/c9s/internal/ui/theme"
 )
 
 func TestInfoModel_AnyKeyDismisses(t *testing.T) {
 	m := NewInfo("Title", []string{"line one", "line two"}, InfoOK, theme.DefaultDark())
-	for _, key := range []tea.KeyMsg{
-		{Type: tea.KeyEnter},
-		{Type: tea.KeyEsc},
-		{Type: tea.KeyRunes, Runes: []rune{'q'}},
-		{Type: tea.KeyRunes, Runes: []rune{' '}},
+	for _, key := range []tea.KeyPressMsg{
+		{Code: tea.KeyEnter},
+		{Code: tea.KeyEsc},
+		{Code: 'q', Text: "q"},
+		{Code: ' ', Text: " "},
 	} {
 		_, cmd := m.Update(key)
 		if cmd == nil {

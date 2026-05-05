@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"runtime/debug"
 
-	tea "github.com/charmbracelet/bubbletea"
+	tea "charm.land/bubbletea/v2"
 
 	"github.com/torosent/c9s/internal/cli"
 	"github.com/torosent/c9s/internal/cli/demodata"
@@ -16,6 +16,7 @@ import (
 	"github.com/torosent/c9s/internal/config"
 	"github.com/torosent/c9s/internal/dockershim"
 	"github.com/torosent/c9s/internal/ui"
+	"github.com/torosent/c9s/internal/ui/blockingwriter"
 	"github.com/torosent/c9s/internal/ui/theme"
 	"github.com/torosent/c9s/internal/version"
 )
@@ -96,7 +97,13 @@ func main() {
 
 	app := ui.NewApp(client, clock.Real(), palette, cfg)
 	app.SetSkinName(skinName)
-	p := tea.NewProgram(app, tea.WithAltScreen(), tea.WithMouseCellMotion())
+	// Wrap stdout in a blocking writer so the bubbletea v2 renderer can
+	// always flush a full frame. After tea.ExecProcess restores the
+	// terminal on macOS, stdout can be left in non-blocking mode and
+	// large frames (~10 KB) hit EAGAIN at the kernel TTY buffer (~1 KB),
+	// which the renderer treats as fatal — leaving the screen stuck on
+	// a partially drawn frame after the user exits an exec'd shell.
+	p := tea.NewProgram(app, tea.WithOutput(blockingwriter.New(os.Stdout)))
 	if _, err := p.Run(); err != nil {
 		fmt.Fprintln(os.Stderr, "c9s:", err)
 		os.Exit(1)

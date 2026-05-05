@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	tea "github.com/charmbracelet/bubbletea"
+	tea "charm.land/bubbletea/v2"
 	"github.com/torosent/c9s/internal/cli"
 	"github.com/torosent/c9s/internal/ui/theme"
 )
@@ -29,10 +29,10 @@ func TestRunFormTabAndSpaceToggles(t *testing.T) {
 	m := NewRunForm("alpine", theme.DefaultDark())
 	// Tab to interactive (focus=0 name → 1 image → 2 ports → 3 env → 4 volumes → 5 interactive)
 	for i := 0; i < runFieldInteractive; i++ {
-		m2, _ := m.Update(tea.KeyMsg{Type: tea.KeyTab})
+		m2, _ := m.Update(tea.KeyPressMsg{Code: tea.KeyTab})
 		m = m2.(RunFormModel)
 	}
-	m2, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{' '}})
+	m2, _ := m.Update(tea.KeyPressMsg{Code: ' ', Text: " "})
 	m = m2.(RunFormModel)
 	v := m.View(80, 30)
 	if !strings.Contains(v, "[x] Interactive") {
@@ -43,19 +43,19 @@ func TestRunFormTabAndSpaceToggles(t *testing.T) {
 func TestRunFormCtrlEnterSubmits(t *testing.T) {
 	m := NewRunForm("alpine", theme.DefaultDark())
 	// Move to ports field and type
-	m2, _ := m.Update(tea.KeyMsg{Type: tea.KeyTab})
+	m2, _ := m.Update(tea.KeyPressMsg{Code: tea.KeyTab})
 	m = m2.(RunFormModel)
-	m2, _ = m.Update(tea.KeyMsg{Type: tea.KeyTab})
+	m2, _ = m.Update(tea.KeyPressMsg{Code: tea.KeyTab})
 	m = m2.(RunFormModel)
 	for _, r := range "8080:80, 443:443" {
-		m2, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{r}})
+		m2, _ := m.Update(tea.KeyPressMsg{Code: r, Text: string(r)})
 		m = m2.(RunFormModel)
 	}
 	// Ctrl-S submits as well (for terminals without Ctrl-Enter)
-	_, cmd := m.Update(tea.KeyMsg{Type: tea.KeyCtrlS, Runes: []rune("ctrl+s")})
+	_, cmd := m.Update(tea.KeyPressMsg{Code: 's', Mod: tea.ModCtrl})
 	if cmd == nil {
 		// Try the simulated Ctrl-Enter path
-		_, cmd = m.Update(tea.KeyMsg{Type: tea.KeyCtrlD})
+		_, cmd = m.Update(tea.KeyPressMsg{Code: 'd', Mod: tea.ModCtrl})
 	}
 	if cmd == nil {
 		t.Fatal("expected submit cmd")
@@ -86,7 +86,7 @@ func TestRunFormCtrlEnterSubmits(t *testing.T) {
 
 func TestRunFormEscCancels(t *testing.T) {
 	m := NewRunForm("", theme.DefaultDark())
-	_, cmd := m.Update(tea.KeyMsg{Type: tea.KeyEsc})
+	_, cmd := m.Update(tea.KeyPressMsg{Code: tea.KeyEsc})
 	if cmd == nil {
 		t.Fatal("Esc nil")
 	}
@@ -104,7 +104,7 @@ func TestRunFormEscCancels(t *testing.T) {
 func TestRunFormShiftTabCycles(t *testing.T) {
 	m := NewRunForm("alpine", theme.DefaultDark())
 	for i := 0; i < runFieldCount+1; i++ {
-		m2, _ := m.Update(tea.KeyMsg{Type: tea.KeyShiftTab})
+		m2, _ := m.Update(tea.KeyPressMsg{Code: tea.KeyTab, Mod: tea.ModShift})
 		m = m2.(RunFormModel)
 	}
 	_ = m.View(80, 30)
@@ -114,20 +114,20 @@ func TestRunFormSubmitMapsAllFieldsToCLIRunOpts(t *testing.T) {
 	m := NewRunForm("img", theme.DefaultDark())
 	// Verify form value mapping by setting them through the public Update path
 	for _, r := range "myname" {
-		m2, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{r}})
+		m2, _ := m.Update(tea.KeyPressMsg{Code: r, Text: string(r)})
 		m = m2.(RunFormModel)
 	}
 	// Tab forward to volumes field
 	for i := 0; i < runFieldVolumes; i++ {
-		m2, _ := m.Update(tea.KeyMsg{Type: tea.KeyTab})
+		m2, _ := m.Update(tea.KeyPressMsg{Code: tea.KeyTab})
 		m = m2.(RunFormModel)
 	}
 	for _, r := range "data:/data" {
-		m2, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{r}})
+		m2, _ := m.Update(tea.KeyPressMsg{Code: r, Text: string(r)})
 		m = m2.(RunFormModel)
 	}
 	// Ctrl-D submit
-	_, cmd := m.Update(tea.KeyMsg{Type: tea.KeyCtrlD})
+	_, cmd := m.Update(tea.KeyPressMsg{Code: 'd', Mod: tea.ModCtrl})
 	if cmd == nil {
 		t.Fatal("submit cmd nil")
 	}

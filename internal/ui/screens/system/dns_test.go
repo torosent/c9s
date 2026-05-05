@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	tea "github.com/charmbracelet/bubbletea"
+	tea "charm.land/bubbletea/v2"
 	"github.com/torosent/c9s/internal/cli"
 	"github.com/torosent/c9s/internal/clock"
 	"github.com/torosent/c9s/internal/state"
@@ -56,7 +56,7 @@ func TestDNSRender(t *testing.T) {
 func TestDNSCreateFlow(t *testing.T) {
 	f := cli.NewFake()
 	m := NewDNS(f, clock.NewFake(time.Now()), theme.DefaultDark())
-	_, cmd := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'c'}})
+	_, cmd := m.Update(tea.KeyPressMsg{Code: 'c', Text: "c"})
 	if cmd == nil {
 		t.Fatal("c nil")
 	}
@@ -99,7 +99,7 @@ func TestDNSDeleteFlow(t *testing.T) {
 	m := NewDNS(f, clock.NewFake(time.Now()), theme.DefaultDark())
 	m = feedDNS(t, m, sampleDNS())
 
-	_, cmd := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'D'}})
+	_, cmd := m.Update(tea.KeyPressMsg{Code: 'D', Text: "D"})
 	if cmd == nil {
 		t.Fatal("D nil")
 	}
@@ -120,7 +120,7 @@ func TestDNSSetDefault(t *testing.T) {
 	f := cli.NewFake()
 	m := NewDNS(f, clock.NewFake(time.Now()), theme.DefaultDark())
 	m = feedDNS(t, m, sampleDNS())
-	_, cmd := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'*'}})
+	_, cmd := m.Update(tea.KeyPressMsg{Code: '*', Text: "*"})
 	if cmd == nil {
 		t.Fatal("nil cmd")
 	}
@@ -133,7 +133,7 @@ func TestDNSSetDefault(t *testing.T) {
 func TestDNSRefreshAndFilter(t *testing.T) {
 	f := cli.NewFake()
 	m := NewDNS(f, clock.NewFake(time.Now()), theme.DefaultDark())
-	_, cmd := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'r'}})
+	_, cmd := m.Update(tea.KeyPressMsg{Code: 'r', Text: "r"})
 	if cmd == nil {
 		t.Fatal("r nil")
 	}
@@ -142,13 +142,13 @@ func TestDNSRefreshAndFilter(t *testing.T) {
 		t.Errorf("expected ListDNSDomains: %v", f.Calls)
 	}
 	m = feedDNS(t, m, sampleDNS())
-	s, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'/'}})
+	s, _ := m.Update(tea.KeyPressMsg{Code: '/', Text: "/"})
 	m = s.(DNSModel)
 	for _, r := range "dev" {
-		s, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{r}})
+		s, _ = m.Update(tea.KeyPressMsg{Code: r, Text: string(r)})
 		m = s.(DNSModel)
 	}
-	s, _ = m.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	s, _ = m.Update(tea.KeyPressMsg{Code: tea.KeyEnter})
 	m = s.(DNSModel)
 	v := m.View(120, 30)
 	if !strings.Contains(v, "dev.local") {

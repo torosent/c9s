@@ -9,6 +9,93 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Post-exec rendering corruption** (the "exit shell shows only 3
+  banner rows" bug). After `tea.ExecProcess` restored the terminal on
+  macOS, stdout was sometimes left in non-blocking mode. The bubbletea
+  v2 renderer issues full-frame writes (~10 KB each) and the kernel
+  TTY buffer caps at ~1 KB, so the very first post-resume write
+  returned `EAGAIN` after only 1024 bytes. The renderer treats partial
+  writes as fatal, drops the rest of the frame, and never recovers
+  (subsequent renders are skipped because the cached `lastView`
+  matches the new view). The fix wraps `os.Stdout` in a small
+  `blockingwriter` that retries on `EAGAIN`/`EWOULDBLOCK` so the full
+  frame always reaches the terminal.
+
+### Changed
+
+- **Upgraded to bubbletea v2 (`charm.land/bubbletea/v2`)**, plus
+  matching v2 of `lipgloss` and `bubbles`. v2 ships a new cell-based
+  renderer (uses Charm's `ultraviolet` terminal library) that
+  correctly handles `tea.ExecProcess` resume — the old line-diff
+  renderer in v1.3.10 had a bug where the `lastRenderedLines` cache
+  survived the suspend/resume cycle even though `repaint()` was
+  called, leaving the user with banner-bottom + one container row +
+  acres of blank space after `s` → bash → `exit`. v2's renderer
+  doesn't have this bug. Instrumented byte-stream capture confirms
+  the post-exec frame is now drawn correctly.
+  - All key handlers updated to `tea.KeyPressMsg` (v2's
+    `tea.KeyMsg` is now an interface).
+  - All mouse handlers updated to `tea.MouseClickMsg` /
+    `tea.MouseWheelMsg` (also interfaces in v2).
+  - Root `Model.View()` returns `tea.View` instead of `string`;
+    altscreen and mouse mode are now declared via `View.AltScreen`
+    and `View.MouseMode` rather than `tea.NewProgram` options.
+  - `lipgloss.Color` is a constructor function in v2; the `Palette`
+    struct fields are now `image/color.Color`.
+
+### Added
+
+- **Shell picker modal** — `s` on a running container now opens a
+  small modal asking whether to use `/bin/bash` or `/bin/sh` rather
+  than blindly using the host's `$SHELL`. The host shell (often
+  `/bin/zsh` on macOS) is rarely present inside Linux containers,
+  and Apple's `container` returns exit 0 even when exec fails, so a
+  missing shell would silently leave the user staring at a glitched
+  half-rendered TUI. Press `b`/`s` for a one-keystroke pick or use
+  arrow keys + Enter.
+
+### Fixed
+
+- **`ShellPickedMsg` was swallowed by the still-open picker modal.**
+  The picker batches `ShellPickedMsg` alongside `CloseModalMsg`, but
+  `tea.Batch` doesn't guarantee ordering. When `ShellPickedMsg`
+  arrived first the picker was still top of stack, the modal received
+  the message, didn't handle it, and the user's pick vanished — the
+  classic "I clicked bash and nothing happened" symptom. Added an
+  explicit typed case in `app.Update` that forwards `ShellPickedMsg`
+  directly to the active screen, mirroring `ConfirmResultMsg`.
+- **Probe shell existence before suspending the TUI.** Apple's
+  `container exec -it <id> <shell>` returns **exit 0 even when the
+  shell isn't installed** — it writes the error to stderr (visible
+  for milliseconds before altscreen re-entry hides it) and exits.
+  `tea.ExecProcess` sees a clean exit so we can't surface a useful
+  toast post-hoc. Now probe `container exec <id> test -x <shell>`
+  (3-second timeout, no `-it`) before running the interactive exec;
+  if the probe fails we toast `<shell> not available in <id> — try
+  the other shell` and skip the suspend entirely.
+- **Glitched TUI after `tea.ExecProcess` returns.** Even on a
+  successful shell session, after exit the next altscreen frame
+  sometimes rendered on top of stale cells (truncated table +
+  leftover output visible). `tea.WindowSize()` alone wasn't enough
+  because bubbletea's renderer preserves cells it thinks are
+  unchanged. The handler now batches `tea.ClearScreen` (emits
+  `\033[2J\033[H`) ahead of `tea.WindowSize()` to force a full
+  altscreen repaint.
+- **`x` (stop), `Shift+K` (kill), `Shift+R` (restart), and `p` (pause)
+  now refresh the table immediately.** Previously they relied on the
+  2-second poll tick, so the user pressed `x` to stop a container and
+  saw `running` for up to 2 seconds. Each lifecycle action now batches
+  a follow-up `ListContainers` refresh, mirroring the existing
+  `delete` / `prune` behaviour, and surfaces a clear "stopped <id>" /
+  "killed <id>" / etc. toast.
+- **`s` (shell) on a non-running container shows a toast instead of
+  failing silently.** `container exec -it <id> <shell>` exits
+  immediately when the target container isn't running, leaving the
+  user staring at the same screen with no feedback. The screen now
+  refuses to issue the exec for non-running containers and surfaces
+  `can't open shell: <id> is stopped`. ExecProcess errors at the
+  `app.go` layer are also surfaced as a toast so any other failure
+  (image lacks `/bin/sh`, race with another stop, etc.) is visible.
 - **Splash dropping the active screen's first refresh and tick.** The
   app's catch-all message-forwarding block was gated behind
   `!m.showSplash`, which meant any message dispatched by the active

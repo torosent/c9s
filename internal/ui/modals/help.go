@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
+	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
 	"github.com/torosent/c9s/internal/ui/keymap"
 	"github.com/torosent/c9s/internal/ui/theme"
 )
@@ -34,7 +34,7 @@ func (m HelpModel) Init() tea.Cmd {
 // Update implements Modal.
 func (m HelpModel) Update(msg tea.Msg) (Modal, tea.Cmd) {
 	switch msg.(type) {
-	case tea.KeyMsg:
+	case tea.KeyPressMsg:
 		// Any key closes the help modal
 		return m, func() tea.Msg {
 			return CloseModalMsg{}

@@ -3,9 +3,9 @@ package modals
 import (
 	"strings"
 
-	"github.com/charmbracelet/bubbles/textinput"
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
+	"charm.land/bubbles/v2/textinput"
+	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
 	"github.com/torosent/c9s/internal/cli"
 	"github.com/torosent/c9s/internal/ui/theme"
 )
@@ -56,7 +56,7 @@ func NewRunForm(imageHint string, p theme.Palette) RunFormModel {
 		t.Prompt = prompt
 		t.Placeholder = placeholder
 		t.CharLimit = 256
-		t.Width = 50
+		t.SetWidth(50)
 		styleTextInput(&t, p)
 		return t
 	}
@@ -90,29 +90,29 @@ func (m RunFormModel) Init() tea.Cmd { return textinput.Blink }
 // Update implements Modal.
 func (m RunFormModel) Update(msg tea.Msg) (Modal, tea.Cmd) {
 	switch msg := msg.(type) {
-	case tea.KeyMsg:
-		switch msg.Type {
-		case tea.KeyEsc:
+	case tea.KeyPressMsg:
+		switch msg.String() {
+		case "esc":
 			return m, tea.Batch(
 				func() tea.Msg { return RunCancelledMsg{} },
 				CloseModal(),
 			)
-		case tea.KeyTab:
+		case "tab":
 			m.focus = (m.focus + 1) % runFieldCount
 			m.applyFocus()
 			return m, nil
-		case tea.KeyShiftTab:
+		case "shift+tab":
 			m.focus = (m.focus + runFieldCount - 1) % runFieldCount
 			m.applyFocus()
 			return m, nil
-		case tea.KeyCtrlD:
+		case "ctrl+d":
 			// Convenient shortcut: Ctrl-D submits.
 			return m.submit()
 		}
 		switch msg.String() {
 		case "ctrl+s", "ctrl+enter":
 			return m.submit()
-		case " ":
+		case "space":
 			// Toggle on bool fields
 			switch m.focus {
 			case runFieldInteractive:

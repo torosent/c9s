@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	tea "github.com/charmbracelet/bubbletea"
+	tea "charm.land/bubbletea/v2"
 	"github.com/torosent/c9s/internal/ui/theme"
 )
 
@@ -36,7 +36,7 @@ func TestSkinPicker_EnterEmitsSkinPickedMsg(t *testing.T) {
 	// Trigger size so the underlying list is laid out
 	updated, _ := m.Update(tea.WindowSizeMsg{Width: 80, Height: 24})
 	m = updated.(SkinPickerModel)
-	_, cmd := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	_, cmd := m.Update(tea.KeyPressMsg{Code: tea.KeyEnter})
 	if cmd == nil {
 		t.Fatal("Enter should produce a Cmd")
 	}
@@ -53,7 +53,7 @@ func TestSkinPicker_EnterEmitsSkinPickedMsg(t *testing.T) {
 func TestSkinPicker_EscClosesModal(t *testing.T) {
 	p := theme.DefaultDark()
 	m := NewSkinPicker([]string{"dark"}, p)
-	_, cmd := m.Update(tea.KeyMsg{Type: tea.KeyEsc})
+	_, cmd := m.Update(tea.KeyPressMsg{Code: tea.KeyEsc})
 	if cmd == nil {
 		t.Fatal("Esc should produce a Cmd")
 	}

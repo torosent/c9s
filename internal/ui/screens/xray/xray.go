@@ -4,7 +4,7 @@ package xray
 import (
 	"fmt"
 
-	tea "github.com/charmbracelet/bubbletea"
+	tea "charm.land/bubbletea/v2"
 	"github.com/torosent/c9s/internal/cli"
 	"github.com/torosent/c9s/internal/ui/keymap"
 	"github.com/torosent/c9s/internal/ui/screens"
@@ -102,7 +102,7 @@ func (m *Model) Update(msg tea.Msg) (screens.Screen, tea.Cmd) {
 	case TreeBuiltMsg:
 		m.tree = widgets.NewTree(msg.Root)
 
-	case tea.KeyMsg:
+	case tea.KeyPressMsg:
 		switch {
 		case m.keymap.Matches("jump", msg):
 			if m.tree.Focused != nil {

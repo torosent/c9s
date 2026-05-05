@@ -3,14 +3,15 @@ package modals
 import (
 	"context"
 	"fmt"
+	"image/color"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
 
-	"github.com/charmbracelet/bubbles/viewport"
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
+	"charm.land/bubbles/v2/viewport"
+	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
 	"github.com/torosent/c9s/internal/cli"
 	"github.com/torosent/c9s/internal/ui/theme"
 )
@@ -51,7 +52,7 @@ func NewLogViewer(sources []LogSource) *LogViewerModel {
 func NewLogViewerWithPalette(sources []LogSource, p theme.Palette) *LogViewerModel {
 	ctx, cancel := context.WithCancel(context.Background())
 
-	vp := viewport.New(80, 24)
+	vp := viewport.New(viewport.WithWidth(80), viewport.WithHeight(24))
 	vp.Style = lipgloss.NewStyle().Background(p.Bg).Foreground(p.Fg)
 
 	m := &LogViewerModel{
@@ -107,7 +108,7 @@ func (m *LogViewerModel) Update(msg tea.Msg) (Modal, tea.Cmd) {
 	var cmds []tea.Cmd
 
 	switch msg := msg.(type) {
-	case tea.KeyMsg:
+	case tea.KeyPressMsg:
 		if m.filterActive {
 			return m.handleFilterInput(msg)
 		}
@@ -132,8 +133,8 @@ func (m *LogViewerModel) Update(msg tea.Msg) (Modal, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
 		m.height = msg.Height
-		m.viewport.Width = msg.Width
-		m.viewport.Height = msg.Height - 3 // Reserve space for header/footer
+		m.viewport.SetWidth(msg.Width)
+		m.viewport.SetHeight(msg.Height - 3) // Reserve space for header/footer
 		m.updateViewport()
 	}
 
@@ -144,7 +145,7 @@ func (m *LogViewerModel) Update(msg tea.Msg) (Modal, tea.Cmd) {
 	return m, tea.Batch(cmds...)
 }
 
-func (m *LogViewerModel) handleKey(msg tea.KeyMsg) (Modal, tea.Cmd) {
+func (m *LogViewerModel) handleKey(msg tea.KeyPressMsg) (Modal, tea.Cmd) {
 	switch msg.String() {
 	case "q", "esc":
 		m.cancel()
@@ -202,7 +203,7 @@ func (m *LogViewerModel) handleKey(msg tea.KeyMsg) (Modal, tea.Cmd) {
 	return m, nil
 }
 
-func (m *LogViewerModel) handleFilterInput(msg tea.KeyMsg) (Modal, tea.Cmd) {
+func (m *LogViewerModel) handleFilterInput(msg tea.KeyPressMsg) (Modal, tea.Cmd) {
 	switch msg.String() {
 	case "enter":
 		m.filter = m.filterInput
@@ -219,8 +220,8 @@ func (m *LogViewerModel) handleFilterInput(msg tea.KeyMsg) (Modal, tea.Cmd) {
 		}
 		return m, nil
 	default:
-		if len(msg.Runes) > 0 {
-			m.filterInput += string(msg.Runes)
+		if msg.Text != "" {
+			m.filterInput += msg.Text
 		}
 		return m, nil
 	}
@@ -287,7 +288,7 @@ func (m *LogViewerModel) updateViewport() {
 }
 
 func (m *LogViewerModel) colorizeLevel(line, level string) string {
-	var color lipgloss.Color
+	var color color.Color
 	switch level {
 	case "INFO":
 		color = lipgloss.Color("86") // cyan
@@ -329,9 +330,9 @@ func (m *LogViewerModel) saveToFile() tea.Cmd {
 
 // View implements Modal.
 func (m *LogViewerModel) View(width, height int) string {
-	if width > 0 && (m.viewport.Width != width || m.viewport.Height != height-3) {
-		m.viewport.Width = width
-		m.viewport.Height = height - 3
+	if width > 0 && (m.viewport.Width() != width || m.viewport.Height() != height-3) {
+		m.viewport.SetWidth(width)
+		m.viewport.SetHeight(height - 3)
 		m.updateViewport()
 	}
 	header := m.renderHeader()
@@ -339,7 +340,8 @@ func (m *LogViewerModel) View(width, height int) string {
 	body := m.viewport.View()
 
 	bg := lipgloss.NewStyle().Background(m.palette.Bg).Foreground(m.palette.Fg)
-	out := lipgloss.JoinVertical(lipgloss.Left,
+	out := lipgloss.JoinVertical(
+		lipgloss.Left,
 		bg.Width(width).Render(header),
 		bg.Width(width).Render(body),
 		bg.Width(width).Render(footer),

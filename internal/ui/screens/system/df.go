@@ -3,9 +3,9 @@ package system
 import (
 	"fmt"
 
-	"github.com/charmbracelet/bubbles/table"
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
+	"charm.land/bubbles/v2/table"
+	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
 	"github.com/torosent/c9s/internal/cli"
 	"github.com/torosent/c9s/internal/clock"
 	"github.com/torosent/c9s/internal/ui/keymap"
@@ -82,7 +82,7 @@ func (m DFModel) Update(msg tea.Msg) (screens.Screen, tea.Cmd) {
 	case dfMsg:
 		m.df = cli.SystemDF(msg)
 		m.rebuildTable()
-	case tea.KeyMsg:
+	case tea.KeyPressMsg:
 		if m.keymap.Matches("refresh", msg) {
 			return m, m.refreshCmd()
 		}
@@ -92,6 +92,7 @@ func (m DFModel) Update(msg tea.Msg) (screens.Screen, tea.Cmd) {
 
 // View implements screens.Screen.
 func (m DFModel) View(width, height int) string {
+	(&m.tbl).SetWidth(width)
 	help := lipgloss.NewStyle().Foreground(m.palette.Dim).Render("r: refresh")
 	return m.tbl.View() + "\n" + help
 }

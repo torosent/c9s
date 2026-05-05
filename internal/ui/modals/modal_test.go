@@ -3,7 +3,7 @@ package modals
 import (
 	"testing"
 
-	tea "github.com/charmbracelet/bubbletea"
+	tea "charm.land/bubbletea/v2"
 )
 
 // dummyModal is a stub implementation for testing.
