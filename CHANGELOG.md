@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Post-exec rendering corruption** (the "exit shell shows only 3
+  banner rows" bug). After `tea.ExecProcess` restored the terminal on
+  macOS, stdout was sometimes left in non-blocking mode. The bubbletea
+  v2 renderer issues full-frame writes (~10 KB each) and the kernel
+  TTY buffer caps at ~1 KB, so the very first post-resume write
+  returned `EAGAIN` after only 1024 bytes. The renderer treats partial
+  writes as fatal, drops the rest of the frame, and never recovers
+  (subsequent renders are skipped because the cached `lastView`
+  matches the new view). The fix wraps `os.Stdout` in a small
+  `blockingwriter` that retries on `EAGAIN`/`EWOULDBLOCK` so the full
+  frame always reaches the terminal.
+
 ### Changed
 
 - **Upgraded to bubbletea v2 (`charm.land/bubbletea/v2`)**, plus
