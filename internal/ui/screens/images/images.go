@@ -143,7 +143,8 @@ func (m *Model) Update(msg tea.Msg) (screens.Screen, tea.Cmd) {
 		if msg.Resource != cli.ResourceImages {
 			break
 		}
-		cmds = append(cmds,
+		cmds = append(
+			cmds,
 			state.MakeRefreshedCmd[cli.Image](
 				cli.DefaultCtx(),
 				func(ctx context.Context) ([]cli.Image, error) {

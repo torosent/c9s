@@ -101,7 +101,8 @@ func (m SkinPickerModel) View(width, height int) string {
 		lines = append(lines, line)
 	}
 
-	lines = append(lines,
+	lines = append(
+		lines,
 		bg.Width(innerW).Render(" "),
 		bg.Width(innerW).Render(dim.Render("Enter: apply · ↑/↓: select · Esc: cancel")),
 	)

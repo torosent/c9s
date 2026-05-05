@@ -112,7 +112,8 @@ func (m *Model) Update(msg tea.Msg) (screens.Screen, tea.Cmd) {
 		if msg.Resource != cli.ResourceNetworks {
 			break
 		}
-		cmds = append(cmds,
+		cmds = append(
+			cmds,
 			state.MakeRefreshedCmd[cli.Network](
 				cli.DefaultCtx(),
 				func(ctx context.Context) ([]cli.Network, error) {

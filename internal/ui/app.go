@@ -1123,7 +1123,7 @@ func (m *Model) logError(op, resource, message, detail string) {
 func (m Model) View() tea.View {
 	out := m.viewInternal()
 	if os.Getenv("C9S_TRACE") != "" {
-		if f, err := os.OpenFile("/tmp/c9s-trace.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644); err == nil {
+		if f, err := os.OpenFile("/tmp/c9s-trace.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644); err == nil {
 			fmt.Fprintf(f, "[View] m=%dx%d body=%d showSplash=%v stack=%d outLines=%d outChars=%d\n",
 				m.width, m.height, m.bodyRegionHeight(), m.showSplash, m.stack.Len(),
 				strings.Count(out, "\n")+1, len(out))

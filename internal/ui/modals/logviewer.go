@@ -340,7 +340,8 @@ func (m *LogViewerModel) View(width, height int) string {
 	body := m.viewport.View()
 
 	bg := lipgloss.NewStyle().Background(m.palette.Bg).Foreground(m.palette.Fg)
-	out := lipgloss.JoinVertical(lipgloss.Left,
+	out := lipgloss.JoinVertical(
+		lipgloss.Left,
 		bg.Width(width).Render(header),
 		bg.Width(width).Render(body),
 		bg.Width(width).Render(footer),

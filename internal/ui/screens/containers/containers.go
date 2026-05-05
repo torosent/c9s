@@ -195,7 +195,8 @@ func (m *Model) Update(msg tea.Msg) (screens.Screen, tea.Cmd) {
 			break
 		}
 		// Trigger another refresh and re-arm the tick
-		cmds = append(cmds,
+		cmds = append(
+			cmds,
 			state.MakeRefreshedCmd[cli.Container](
 				cli.DefaultCtx(),
 				func(ctx context.Context) ([]cli.Container, error) {

@@ -11,10 +11,10 @@ import (
 func TestInfoModel_AnyKeyDismisses(t *testing.T) {
 	m := NewInfo("Title", []string{"line one", "line two"}, InfoOK, theme.DefaultDark())
 	for _, key := range []tea.KeyPressMsg{
-		tea.KeyPressMsg{Code: tea.KeyEnter},
-		tea.KeyPressMsg{Code: tea.KeyEsc},
-		tea.KeyPressMsg{Code: 'q', Text: "q"},
-		tea.KeyPressMsg{Code: ' ', Text: " "},
+		{Code: tea.KeyEnter},
+		{Code: tea.KeyEsc},
+		{Code: 'q', Text: "q"},
+		{Code: ' ', Text: " "},
 	} {
 		_, cmd := m.Update(key)
 		if cmd == nil {

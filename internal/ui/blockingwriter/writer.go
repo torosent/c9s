@@ -84,4 +84,3 @@ func (b *blockingWriter) Write(p []byte) (int, error) {
 func (b *blockingWriter) Read(p []byte) (int, error) { return b.f.Read(p) }
 func (b *blockingWriter) Close() error               { return b.f.Close() }
 func (b *blockingWriter) Fd() uintptr                { return b.f.Fd() }
-

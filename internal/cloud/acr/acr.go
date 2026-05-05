@@ -52,7 +52,8 @@ var lookPath = exec.LookPath
 // NOTE: same concurrent-mutation caveat as lookPath above.
 var runAz = func(ctx context.Context, registry string) ([]byte, []byte, error) {
 	//nolint:gosec // 'az' is fixed; registry comes from c9s config / palette input.
-	cmd := exec.CommandContext(ctx, "az", "acr", "login",
+	cmd := exec.CommandContext(
+		ctx, "az", "acr", "login",
 		"--name", registry,
 		"--expose-token",
 		"--output", "tsv",

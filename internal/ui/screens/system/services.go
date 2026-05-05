@@ -107,7 +107,8 @@ func (m ServicesModel) Update(msg tea.Msg) (screens.Screen, tea.Cmd) {
 		if msg.Resource != cli.ResourceSystem {
 			break
 		}
-		cmds = append(cmds,
+		cmds = append(
+			cmds,
 			state.MakeRefreshedCmd[cli.SystemService](
 				cli.DefaultCtx(),
 				func(ctx context.Context) ([]cli.SystemService, error) {

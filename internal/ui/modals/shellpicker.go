@@ -133,7 +133,8 @@ func (m ShellPickerModel) View(width, height int) string {
 		lines = append(lines, row)
 	}
 
-	lines = append(lines,
+	lines = append(
+		lines,
 		bg.Width(innerW).Render(" "),
 		bg.Width(innerW).Render(dim.Render("b/s: pick • ↑/↓+Enter: pick • Esc: cancel")),
 	)
